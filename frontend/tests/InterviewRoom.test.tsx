@@ -146,7 +146,9 @@ describe('InterviewRoomPage Component', () => {
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith(
         '/interviews/session-live-101/turn',
-        { content: 'I would use a 3-node leader-follower topology with append entries RPCs.' }
+        expect.objectContaining({
+          content: 'I would use a 3-node leader-follower topology with append entries RPCs.'
+        })
       );
       expect(screen.getByText(/How does the leader election handle split-brain/i)).toBeInTheDocument();
     });

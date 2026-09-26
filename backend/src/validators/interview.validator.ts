@@ -49,7 +49,15 @@ export const submitTurnSchema = z.object({
     .string({ required_error: 'Content is required' })
     .trim()
     .min(1, 'Response content cannot be empty')
-    .max(8000, 'Response cannot exceed 8,000 characters')
+    .max(8000, 'Response cannot exceed 8,000 characters'),
+  codeSnippet: z
+    .object({
+      code: z.string(),
+      language: z.string(),
+      testCases: z.array(z.any()).optional(),
+      lastExecutedAt: z.string().optional()
+    })
+    .optional()
 });
 
 export type CreateInterviewInput = z.infer<typeof createInterviewSchema>;

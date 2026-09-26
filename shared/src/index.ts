@@ -129,6 +129,78 @@ export interface CreateInterviewDto {
   customInstructions?: string;
 }
 
+export enum SupportedLanguage {
+  PYTHON = 'python',
+  JAVASCRIPT = 'javascript',
+  TYPESCRIPT = 'typescript',
+  JAVA = 'java',
+  CPP = 'cpp',
+  GO = 'go',
+  SQL = 'sql'
+}
+
+export interface ICodeTestCase {
+  id: string;
+  input: string;
+  expectedOutput: string;
+  actualOutput?: string;
+  passed?: boolean;
+  executionTimeMs?: number;
+  error?: string;
+}
+
+export interface ICodeSnippet {
+  code: string;
+  language: SupportedLanguage;
+  testCases?: ICodeTestCase[];
+  lastExecutedAt?: string;
+}
+
+export interface CodeExecutionRequest {
+  code: string;
+  language: SupportedLanguage;
+  testCases?: ICodeTestCase[];
+  customInput?: string;
+}
+
+export interface CodeExecutionResult {
+  success: boolean;
+  stdout?: string;
+  stderr?: string;
+  executionTimeMs: number;
+  memoryUsageKb?: number;
+  testResults?: ICodeTestCase[];
+  allPassed?: boolean;
+  error?: string;
+}
+
+export interface CodeReviewRequest {
+  code: string;
+  language: SupportedLanguage;
+  problemContext?: string;
+  sessionId?: string;
+  stageId?: string;
+}
+
+export interface CodeReviewResponse {
+  verdict: 'optimal' | 'needs_improvement' | 'bug_detected' | 'syntax_error';
+  summary: string;
+  timeComplexity: string;
+  spaceComplexity: string;
+  keyInsights: string[];
+  edgeCaseWarnings: string[];
+  suggestedRefactoring?: string;
+}
+
+export interface IAudioSettings {
+  ttsEnabled: boolean;
+  speechRate: number; // 0.75 to 1.5
+  speechPitch: number; // 0.8 to 1.2
+  preferredVoice?: string;
+  sttLanguage: string;
+  autoReadResponse: boolean;
+}
+
 export interface IInterviewMessage {
   id: string;
   role: 'interviewer' | 'candidate' | 'system';
@@ -137,10 +209,13 @@ export interface IInterviewMessage {
   stageIndex?: number;
   timestamp: string;
   suggestedFollowUps?: string[];
+  codeSnippet?: ICodeSnippet;
+  codeReview?: CodeReviewResponse;
 }
 
 export interface InterviewTurnDto {
   content: string;
+  codeSnippet?: ICodeSnippet;
 }
 
 export interface InterviewTurnResponse {

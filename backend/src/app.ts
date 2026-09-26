@@ -9,6 +9,7 @@ import { authRouter } from './routes/auth.routes';
 import { userRouter } from './routes/user.routes';
 import { dashboardRouter } from './routes/dashboard.routes';
 import interviewRouter from './routes/interview.routes';
+import codeRouter from './routes/code.routes';
 
 export function createApp() {
   const app = express();
@@ -29,6 +30,7 @@ export function createApp() {
   app.use('/api/v1/users', userRouter);
   app.use('/api/v1/dashboard', dashboardRouter);
   app.use('/api/v1/interviews', interviewRouter);
+  app.use('/api/v1/code', codeRouter);
 
 
   // Catch-all route for unknown API endpoints

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.api.health import router as health_router
 from app.api.interviewer import router as interviewer_router
+from app.api.code import router as code_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -21,6 +22,7 @@ app.add_middleware(
 
 app.include_router(health_router, tags=["Health"])
 app.include_router(interviewer_router, tags=["AI Interviewer"])
+app.include_router(code_router, tags=["Code Runner & Analysis"])
 
 
 @app.get("/")

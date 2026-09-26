@@ -436,7 +436,8 @@ export class InterviewService {
     userId: string,
     interviewId: string,
     candidateContent: string,
-    isAdmin = false
+    isAdmin = false,
+    codeSnippet?: any
   ): Promise<{ session: IInterviewSession; message: IInterviewMessage; stageAdvanced?: boolean }> {
     if (!mongoose.Types.ObjectId.isValid(interviewId)) {
       throw new AppError('Invalid interview ID', 400);
@@ -469,7 +470,8 @@ export class InterviewService {
       content: candidateContent,
       stageId: currentStage?.id,
       stageIndex: currentStageIdx,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      codeSnippet: codeSnippet || undefined
     };
 
     if (!interview.messages) interview.messages = [];

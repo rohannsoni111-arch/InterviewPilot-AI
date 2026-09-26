@@ -92,7 +92,8 @@ export class InterviewController {
         userId,
         req.params.id,
         validatedInput.content,
-        isAdmin
+        isAdmin,
+        validatedInput.codeSnippet
       );
 
       res.status(200).json({
