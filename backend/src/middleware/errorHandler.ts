@@ -1,15 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { logger } from '../utils/logger';
+import { AppError } from '../utils/errors';
 
 export function errorHandler(
-  err: Error,
+  err: any,
   req: Request,
   res: Response,
   _next: NextFunction
 ): void {
   const timestamp = new Date().toISOString();
-  
+
   if (err instanceof ZodError) {
     res.status(400).json({
       success: false,
@@ -17,6 +18,20 @@ export function errorHandler(
         code: 'VALIDATION_ERROR',
         message: 'Invalid request payload',
         details: err.errors
+      },
+      meta: { timestamp }
+    });
+    return;
+  }
+
+  if (err instanceof AppError || (err.statusCode && err.code)) {
+    const statusCode = err.statusCode || 400;
+    res.status(statusCode).json({
+      success: false,
+      error: {
+        code: err.code || 'BAD_REQUEST',
+        message: err.message,
+        details: err.details
       },
       meta: { timestamp }
     });
