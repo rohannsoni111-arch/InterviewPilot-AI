@@ -6,12 +6,18 @@ import {
   ISTTRequest,
   ISTTResponse,
   ApiResponse,
+  IQuestionBankItem,
+  IQuestionFilter,
+  IInterviewSession,
 } from '@interviewpilot/shared';
 
 interface ExtendedAxiosInstance extends AxiosInstance {
   getVoiceProfiles?: () => Promise<ApiResponse<IVoiceProfile[]>>;
   synthesizeSpeech?: (params: ITTSRequest) => Promise<ApiResponse<ITTSResponse>>;
   transcribeSpeech?: (params: ISTTRequest) => Promise<ApiResponse<ISTTResponse>>;
+  getQuestions?: (filter?: IQuestionFilter) => Promise<ApiResponse<IQuestionBankItem[]>>;
+  getQuestionById?: (id: string) => Promise<ApiResponse<IQuestionBankItem>>;
+  launchQuestionInterview?: (id: string) => Promise<ApiResponse<IInterviewSession>>;
 }
 
 export const api: ExtendedAxiosInstance = axios.create({
@@ -34,5 +40,20 @@ api.synthesizeSpeech = async (params: ITTSRequest): Promise<ApiResponse<ITTSResp
 
 api.transcribeSpeech = async (params: ISTTRequest): Promise<ApiResponse<ISTTResponse>> => {
   const res = await api.post('/speech/stt', params);
+  return res.data;
+};
+
+api.getQuestions = async (filter?: IQuestionFilter): Promise<ApiResponse<IQuestionBankItem[]>> => {
+  const res = await api.get('/questions', { params: filter });
+  return res.data;
+};
+
+api.getQuestionById = async (id: string): Promise<ApiResponse<IQuestionBankItem>> => {
+  const res = await api.get(`/questions/${id}`);
+  return res.data;
+};
+
+api.launchQuestionInterview = async (id: string): Promise<ApiResponse<IInterviewSession>> => {
+  const res = await api.post(`/questions/${id}/launch`);
   return res.data;
 };

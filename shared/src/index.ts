@@ -621,5 +621,53 @@ export interface IVoiceStudioSettings {
   interimTranscription: boolean;
 }
 
+// ----------------------------------------------------
+// Extension 2: Company Question Bank & FAANG Problem Studio
+// ----------------------------------------------------
+
+export interface IQuestionTestCase {
+  input: string;
+  expectedOutput: string;
+  explanation?: string;
+  isHidden?: boolean;
+}
+
+export interface IQuestionBankItem {
+  id: string;
+  title: string;
+  company: string; // 'Google', 'Meta', 'Amazon', 'Netflix', 'Stripe', 'Anthropic', 'Apple', 'Uber'
+  track: InterviewType; // 'coding', 'system_design', 'sql', 'behavioral'
+  difficulty: DifficultyLevel; // 'entry', 'mid', 'senior', 'staff'
+  category: string;
+  acceptanceRate: number; // e.g. 48 (percentage)
+  frequencyScore: number; // 1 - 100
+  estimatedMinutes: number;
+  description: string;
+  examples: {
+    input: string;
+    output: string;
+    explanation?: string;
+  }[];
+  constraints: string[];
+  starterCode: {
+    python?: string;
+    javascript?: string;
+    typescript?: string;
+    sql?: string;
+  };
+  hints: string[];
+  testCases: IQuestionTestCase[];
+  tags: string[];
+}
+
+export interface IQuestionFilter {
+  company?: string;
+  track?: InterviewType;
+  difficulty?: DifficultyLevel;
+  search?: string;
+  tag?: string;
+}
+
+
 
 

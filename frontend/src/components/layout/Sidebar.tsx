@@ -12,7 +12,8 @@ import {
   BarChart3, 
   User,
   Settings,
-  ShieldCheck
+  ShieldCheck,
+  Building2
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -32,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
         ]
       : []),
     { to: '/', label: 'Overview', icon: Home },
+    { to: '/questions', label: 'Question Bank', icon: Building2 },
     { to: '/health', label: 'System Health', icon: Activity },
     { to: '/coding', label: 'Code Studio', icon: Cpu },
     { to: '/resumes', label: 'Resume & JD Match', icon: FileText },
