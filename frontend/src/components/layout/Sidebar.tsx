@@ -6,6 +6,7 @@ import {
   Home, 
   Activity, 
   Layers, 
+  PlusCircle,
   Cpu, 
   Database, 
   FileText, 
@@ -24,15 +25,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
   const { user, isAuthenticated } = useAuth();
 
   const coreLinks = [
-    ...(isAuthenticated ? [{ to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }] : []),
+    ...(isAuthenticated
+      ? [
+          { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          { to: '/interviews', label: 'My Interviews', icon: Layers },
+          { to: '/interviews/new', label: 'New Interview', icon: PlusCircle },
+        ]
+      : []),
     { to: '/', label: 'Overview', icon: Home },
     { to: '/health', label: 'System Health', icon: Activity },
-    { to: '/interviews', label: 'Interviews (Phase 3+)', icon: Layers },
     { to: '/coding', label: 'Code Sandbox (Phase 10+)', icon: Cpu },
     { to: '/sql', label: 'SQL Sandbox (Phase 12+)', icon: Database },
     { to: '/resume', label: 'Resume Intel (Phase 6+)', icon: FileText },
     { to: '/analytics', label: 'Analytics (Phase 20+)', icon: BarChart3 },
   ];
+
 
   const userLinks = [
     { to: '/profile', label: 'My Profile', icon: User },
@@ -113,10 +120,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
           <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 text-xs space-y-1 text-slate-500 dark:text-slate-400">
             <div className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
               <ShieldCheck className="w-3.5 h-3.5 text-brand-500" />
-              Phase 2 Active
+              Phase 3 Active
             </div>
-            <p className="leading-relaxed">Candidate dashboard and performance engine active.</p>
+            <p className="leading-relaxed">Adaptive interview configuration and session engine active.</p>
           </div>
+
         </div>
       </aside>
     </>

@@ -31,6 +31,13 @@ export enum InterviewStatus {
   ABANDONED = 'abandoned'
 }
 
+export enum StrictnessMode {
+  FRIENDLY = 'friendly',
+  REALISTIC = 'realistic',
+  HARD = 'hard',
+  RUTHLESS_FAANG = 'ruthless_faang'
+}
+
 export interface IUserProfile {
   headline?: string;
   bio?: string;
@@ -99,12 +106,64 @@ export interface ChangePasswordDto {
   newPassword: string;
 }
 
-// Dashboard & Analytics Types
+// Interview Configuration & Session Types
+export interface IInterviewStage {
+  id: string;
+  title: string;
+  description: string;
+  durationMinutes: number;
+  order: number;
+  status: 'pending' | 'active' | 'completed' | 'skipped';
+}
+
+export interface CreateInterviewDto {
+  title?: string;
+  type: InterviewType;
+  difficulty: DifficultyLevel;
+  targetRole: string;
+  durationMinutes: number; // 15, 30, 45, 60
+  focusTopics: string[];
+  strictness: StrictnessMode;
+  jobDescription?: string;
+  resumeId?: string;
+  customInstructions?: string;
+}
+
+export interface IInterviewSession {
+  id: string;
+  userId: string;
+  title: string;
+  type: InterviewType;
+  difficulty: DifficultyLevel;
+  targetRole: string;
+  durationMinutes: number;
+  durationSeconds: number;
+  strictness: StrictnessMode;
+  status: InterviewStatus;
+  focusTopics: string[];
+  jobDescription?: string;
+  resumeId?: string;
+  customInstructions?: string;
+  stages: IInterviewStage[];
+  currentStageIndex: number;
+  overallScore?: number;
+  dimensionScores?: Record<string, number>;
+  feedbackSummary?: {
+    strengths: string[];
+    weaknesses: string[];
+    improvements: string[];
+  };
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface IInterviewSummary {
   id: string;
   title: string;
   type: InterviewType;
   difficulty: DifficultyLevel;
+  targetRole?: string;
   status: InterviewStatus;
   overallScore?: number;
   durationSeconds: number;
@@ -115,8 +174,8 @@ export interface IInterviewSummary {
 
 export interface ISkillBreakdown {
   skill: string;
-  score: number; // 0-100
-  benchmark: number; // e.g. 75
+  score: number;
+  benchmark: number;
   assessmentsCount: number;
   status: 'proficient' | 'developing' | 'needs_practice';
 }
@@ -146,8 +205,8 @@ export interface IDashboardData {
     targetRoles: string[];
   };
   metrics: {
-    readinessScore: number | null; // 0-100 or null if no interviews
-    readinessTrend: number | null; // e.g. +5% or null
+    readinessScore: number | null;
+    readinessTrend: number | null;
     totalInterviews: number;
     completedInterviews: number;
     totalPracticeSeconds: number;

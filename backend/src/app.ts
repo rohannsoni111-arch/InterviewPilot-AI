@@ -8,6 +8,7 @@ import { healthRouter } from './routes/health';
 import { authRouter } from './routes/auth.routes';
 import { userRouter } from './routes/user.routes';
 import { dashboardRouter } from './routes/dashboard.routes';
+import interviewRouter from './routes/interview.routes';
 
 export function createApp() {
   const app = express();
@@ -27,6 +28,8 @@ export function createApp() {
   app.use('/api/v1/auth', authRouter);
   app.use('/api/v1/users', userRouter);
   app.use('/api/v1/dashboard', dashboardRouter);
+  app.use('/api/v1/interviews', interviewRouter);
+
 
   // Catch-all route for unknown API endpoints
   app.use('*', (req, res) => {
