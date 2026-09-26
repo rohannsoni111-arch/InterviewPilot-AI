@@ -1,0 +1,20 @@
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+COPY shared ./shared
+COPY backend ./backend
+RUN npm install
+RUN npm --workspace=shared run build
+RUN npm --workspace=backend run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package*.json ./
+COPY shared/package.json ./shared/
+COPY shared/dist ./shared/dist
+COPY backend/package.json ./backend/
+COPY backend/dist ./backend/dist
+RUN npm install --omit=dev
+EXPOSE 5000
+CMD ["npm", "--workspace=backend", "run", "start"]
