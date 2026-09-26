@@ -528,3 +528,49 @@ export interface IProctoringReport {
   summary: string;
 }
 
+// ==========================================
+// Phase 8: Comprehensive Analytics & Skill Radar
+// ==========================================
+
+export interface ITrackCompetency {
+  track: InterviewType;
+  title: string;
+  score: number;
+  sessionsCount: number;
+  benchmark: number;
+  status: 'proficient' | 'developing' | 'needs_practice';
+}
+
+export interface IDimensionAnalytics {
+  dimension: string;
+  score: number;
+  trend: number; // e.g. +5, -2
+  status: 'exceeds' | 'meets' | 'below';
+}
+
+export interface IWeaknessHeatmapItem {
+  topic: string;
+  category: string;
+  recurrenceCount: number;
+  lastOccurredAt?: string;
+  severity: 'critical' | 'moderate' | 'minor';
+  remediationSuggestion: string;
+}
+
+export interface IAnalyticsResponse {
+  hasData: boolean;
+  overallReadinessScore: number | null;
+  readinessTier: string; // 'Junior', 'Mid', 'Senior', 'Staff / Lead'
+  readinessVelocityDelta: number; // e.g. +12
+  estimatedTimeToTargetBar: string; // e.g. '10-14 days (3 more drills)'
+  trackCompetencies: ITrackCompetency[];
+  dimensionAnalytics: IDimensionAnalytics[];
+  trajectory: IProgressDataPoint[];
+  weaknessHeatmap: IWeaknessHeatmapItem[];
+  totalSessions: number;
+  completedSessions: number;
+  totalPracticeHours: number;
+  averageIntegrityScore: number | null;
+}
+
+

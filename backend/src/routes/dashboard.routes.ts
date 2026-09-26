@@ -7,3 +7,4 @@ export const dashboardRouter = Router();
 dashboardRouter.use(authenticate);
 
 dashboardRouter.get('/summary', DashboardController.getSummary);
+dashboardRouter.get('/analytics', DashboardController.getAnalytics);
