@@ -6,6 +6,7 @@ from app.api.interviewer import router as interviewer_router
 from app.api.code import router as code_router
 from app.api.resume import router as resume_router
 from app.api.analytics import router as analytics_router
+from app.api.speech import router as speech_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -27,6 +28,7 @@ app.include_router(interviewer_router, tags=["AI Interviewer"])
 app.include_router(code_router, tags=["Code Runner & Analysis"])
 app.include_router(resume_router, prefix="/api/v1/resume", tags=["Resume & Proctoring"])
 app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics & Radar"])
+app.include_router(speech_router, prefix="/api/v1/speech", tags=["Voice Studio & Speech Engine"])
 
 
 

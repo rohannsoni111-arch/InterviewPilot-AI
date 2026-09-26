@@ -5,12 +5,14 @@ import {
   IInterviewMessage,
   InterviewStatus,
   SupportedLanguage,
-  IAudioSettings
+  IAudioSettings,
+  IVoiceStudioSettings
 } from '@interviewpilot/shared';
 import { api } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { CodeEditor } from '../components/CodeEditor/CodeEditor';
 import { AudioVisualizer } from '../components/AudioVisualizer/AudioVisualizer';
+import { VoiceStudioModal } from '../components/VoiceStudioModal';
 import { useProctoring } from '../hooks/useProctoring';
 import {
   Sparkles,
@@ -29,7 +31,8 @@ import {
   Code2,
   MessageSquare,
   Columns,
-  Shield
+  Shield,
+  Volume2
 } from 'lucide-react';
 
 export const InterviewRoomPage: React.FC = () => {
@@ -48,6 +51,15 @@ export const InterviewRoomPage: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [viewMode, setViewMode] = useState<'chat' | 'split' | 'code'>('split');
+  const [showVoiceStudioModal, setShowVoiceStudioModal] = useState(false);
+
+  const [voiceStudioSettings, setVoiceStudioSettings] = useState<IVoiceStudioSettings>({
+    enabled: true,
+    voiceId: 'sarah-rigorous',
+    autoPlayTTS: true,
+    speechRate: 1.0,
+    interimTranscription: true
+  });
 
   const [audioSettings, setAudioSettings] = useState<IAudioSettings>({
     ttsEnabled: true,
@@ -76,21 +88,51 @@ export const InterviewRoomPage: React.FC = () => {
     scrollToBottom();
   }, [messages, isSending]);
 
-  // Speech synthesis for AI messages
-  const speakText = useCallback(
+  const fallbackWebSpeech = useCallback(
     (text: string) => {
-      if (!audioSettings.ttsEnabled || !('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const cleanText = text.replace(/[*_#`]/g, '');
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.rate = audioSettings.speechRate;
-      utterance.pitch = audioSettings.speechPitch;
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      window.speechSynthesis.speak(utterance);
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const cleanText = text.replace(/[*_#`]/g, '');
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.rate = voiceStudioSettings.speechRate;
+        utterance.pitch = audioSettings.speechPitch;
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
+        window.speechSynthesis.speak(utterance);
+      } else {
+        setIsSpeaking(false);
+      }
     },
-    [audioSettings]
+    [voiceStudioSettings.speechRate, audioSettings.speechPitch]
+  );
+
+  // Speech synthesis for AI examiner messages
+  const speakText = useCallback(
+    async (text: string) => {
+      if (!voiceStudioSettings.enabled || !audioSettings.ttsEnabled) return;
+      try {
+        setIsSpeaking(true);
+        if (api.synthesizeSpeech) {
+          const res = await api.synthesizeSpeech({
+            text: text.replace(/[*_#`]/g, ''),
+            voiceId: voiceStudioSettings.voiceId,
+            speed: voiceStudioSettings.speechRate
+          });
+          if (res?.data?.audioDataUrl) {
+            const audio = new Audio(res.data.audioDataUrl);
+            audio.onended = () => setIsSpeaking(false);
+            audio.onerror = () => fallbackWebSpeech(text);
+            await audio.play();
+            return;
+          }
+        }
+        fallbackWebSpeech(text);
+      } catch {
+        fallbackWebSpeech(text);
+      }
+    },
+    [voiceStudioSettings, audioSettings.ttsEnabled, fallbackWebSpeech]
   );
 
   // Speech-to-text recognition setup
@@ -523,6 +565,12 @@ export const InterviewRoomPage: React.FC = () => {
                 isSpeaking={isSpeaking}
                 audioSettings={audioSettings}
                 onSettingsChange={setAudioSettings}
+                voiceStudioSettings={voiceStudioSettings}
+                onOpenVoiceStudio={() => setShowVoiceStudioModal(true)}
+                onReplayLastExaminerVoice={() => {
+                  const lastAi = [...messages].reverse().find((m) => m.role === 'interviewer');
+                  if (lastAi) speakText(lastAi.content);
+                }}
               />
             </div>
 
@@ -555,6 +603,16 @@ export const InterviewRoomPage: React.FC = () => {
                         <span className="text-[10px] text-slate-500">
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
+                        {isInterviewer && (
+                          <button
+                            type="button"
+                            onClick={() => speakText(msg.content)}
+                            className="p-1 rounded-md text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition-colors ml-1"
+                            title="Play AI audio for this message"
+                          >
+                            <Volume2 className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
 
                       <div
@@ -741,6 +799,22 @@ export const InterviewRoomPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Voice Studio Configuration Modal */}
+      <VoiceStudioModal
+        isOpen={showVoiceStudioModal}
+        onClose={() => setShowVoiceStudioModal(false)}
+        settings={voiceStudioSettings}
+        onSaveSettings={(newSettings) => {
+          setVoiceStudioSettings(newSettings);
+          setAudioSettings((prev) => ({
+            ...prev,
+            speechRate: newSettings.speechRate,
+            autoReadResponse: newSettings.autoPlayTTS
+          }));
+          showToast('Examiner voice profile updated', 'success');
+        }}
+      />
     </div>
   );
 };

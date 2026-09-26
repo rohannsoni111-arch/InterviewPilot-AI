@@ -573,4 +573,53 @@ export interface IAnalyticsResponse {
   averageIntegrityScore: number | null;
 }
 
+// ----------------------------------------------------
+// Phase 9: Real-Time Voice Studio & AI Examiner Speech
+// ----------------------------------------------------
+
+export interface IVoiceProfile {
+  id: string;
+  name: string;
+  gender: 'female' | 'male' | 'neutral';
+  accent: string;
+  style: string;
+  avatar: string;
+  description: string;
+}
+
+export interface ITTSRequest {
+  text: string;
+  voiceId?: string;
+  speed?: number;
+  pitch?: number;
+}
+
+export interface ITTSResponse {
+  audioDataUrl: string; // base64 data URI (audio/wav or audio/mp3)
+  format: 'wav' | 'mp3';
+  durationMs: number;
+  voiceId: string;
+}
+
+export interface ISTTRequest {
+  audioBase64: string;
+  format?: string;
+  sampleRate?: number;
+}
+
+export interface ISTTResponse {
+  text: string;
+  confidence: number;
+  durationMs: number;
+}
+
+export interface IVoiceStudioSettings {
+  enabled: boolean;
+  voiceId: string;
+  autoPlayTTS: boolean;
+  speechRate: number;
+  interimTranscription: boolean;
+}
+
+
 
