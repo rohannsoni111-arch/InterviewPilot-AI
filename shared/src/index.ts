@@ -668,6 +668,49 @@ export interface IQuestionFilter {
   tag?: string;
 }
 
+// ----------------------------------------------------
+// Extension 3: Shareable Verified Badges & Recruiter Hub
+// ----------------------------------------------------
+
+export interface IVerifiedReportBadge {
+  badgeId: string; // e.g. "IP-VERIFIED-98214"
+  verificationHash: string; // SHA-256 hash string
+  shareableUrl: string; // "/verify/IP-VERIFIED-98214"
+  candidateName: string;
+  targetRole: string;
+  interviewType: InterviewType;
+  difficulty: DifficultyLevel;
+  overallScore: number;
+  verdict: HiringVerdict;
+  integrityScore: number;
+  integrityFlag: 'clean' | 'suspicious' | 'flagged';
+  completedAt: string;
+  issuedAt: string;
+}
+
+export interface IPublicVerifiedReport {
+  badge: IVerifiedReportBadge;
+  summary: string;
+  strengths: string[];
+  weaknesses?: string[];
+  categoryBreakdown: {
+    name: string;
+    score: number;
+    maxScore: number;
+    feedback: string;
+  }[];
+  dimensionScores?: {
+    dimension: string;
+    score: number;
+    maxScore: number;
+    status: string;
+  }[];
+  stagesCompleted: number;
+  totalStages: number;
+  durationMinutes: number;
+}
+
+
 
 
 

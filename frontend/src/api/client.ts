@@ -9,6 +9,8 @@ import {
   IQuestionBankItem,
   IQuestionFilter,
   IInterviewSession,
+  IVerifiedReportBadge,
+  IPublicVerifiedReport,
 } from '@interviewpilot/shared';
 
 interface ExtendedAxiosInstance extends AxiosInstance {
@@ -18,6 +20,8 @@ interface ExtendedAxiosInstance extends AxiosInstance {
   getQuestions?: (filter?: IQuestionFilter) => Promise<ApiResponse<IQuestionBankItem[]>>;
   getQuestionById?: (id: string) => Promise<ApiResponse<IQuestionBankItem>>;
   launchQuestionInterview?: (id: string) => Promise<ApiResponse<IInterviewSession>>;
+  getVerificationBadge?: (interviewId: string) => Promise<ApiResponse<IVerifiedReportBadge>>;
+  getPublicVerifiedReport?: (badgeId: string) => Promise<ApiResponse<IPublicVerifiedReport>>;
 }
 
 export const api: ExtendedAxiosInstance = axios.create({
@@ -55,5 +59,15 @@ api.getQuestionById = async (id: string): Promise<ApiResponse<IQuestionBankItem>
 
 api.launchQuestionInterview = async (id: string): Promise<ApiResponse<IInterviewSession>> => {
   const res = await api.post(`/questions/${id}/launch`);
+  return res.data;
+};
+
+api.getVerificationBadge = async (interviewId: string): Promise<ApiResponse<IVerifiedReportBadge>> => {
+  const res = await api.post(`/interviews/${interviewId}/verify-badge`);
+  return res.data;
+};
+
+api.getPublicVerifiedReport = async (badgeId: string): Promise<ApiResponse<IPublicVerifiedReport>> => {
+  const res = await api.get(`/verify/${badgeId}`);
   return res.data;
 };

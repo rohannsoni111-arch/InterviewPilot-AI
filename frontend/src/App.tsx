@@ -21,6 +21,7 @@ import { InterviewReportPage } from './pages/InterviewReportPage';
 import { ResumesPage } from './pages/ResumesPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { QuestionBankPage } from './pages/QuestionBankPage';
+import { PublicVerificationPage } from './pages/PublicVerificationPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 const queryClient = new QueryClient({
@@ -44,6 +45,7 @@ export const App: React.FC = () => {
                   <Route path="/" element={<AppLayout />}>
                     <Route index element={<HomePage />} />
                     <Route path="health" element={<HealthPage />} />
+                    <Route path="verify/:badgeId" element={<PublicVerificationPage />} />
                     <Route path="auth/login" element={<LoginPage />} />
                     <Route path="auth/register" element={<RegisterPage />} />
                     

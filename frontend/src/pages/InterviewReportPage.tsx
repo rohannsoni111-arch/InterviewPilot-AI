@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   IInterviewEvaluationReport,
   IInterviewSession,
-  HiringVerdict
+  HiringVerdict,
+  IVerifiedReportBadge
 } from '@interviewpilot/shared';
 import { api } from '../api/client';
 import { useToast } from '../context/ToastContext';
@@ -22,7 +23,11 @@ import {
   ChevronDown,
   ChevronUp,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  Copy,
+  Check,
+  ExternalLink,
+  X
 } from 'lucide-react';
 
 const VERDICT_CONFIG: Record<
@@ -76,6 +81,11 @@ export const InterviewReportPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>({});
 
+  const [badgeModalOpen, setBadgeModalOpen] = useState(false);
+  const [isGeneratingBadge, setIsGeneratingBadge] = useState(false);
+  const [badgeData, setBadgeData] = useState<IVerifiedReportBadge | null>(null);
+  const [copiedBadgeLink, setCopiedBadgeLink] = useState(false);
+
   useEffect(() => {
     const fetchReport = async () => {
       if (!id) return;
@@ -111,6 +121,33 @@ export const InterviewReportPage: React.FC = () => {
 
     fetchReport();
   }, [id, showToast]);
+
+  const handleOpenBadgeModal = async () => {
+    if (!id) return;
+    setBadgeModalOpen(true);
+    if (!badgeData) {
+      setIsGeneratingBadge(true);
+      try {
+        const res = await api.getVerificationBadge!(id);
+        if (res.success && res.data) {
+          setBadgeData(res.data);
+        }
+      } catch (err: any) {
+        showToast(err.response?.data?.error?.message || 'Failed to generate verification badge', 'error');
+      } finally {
+        setIsGeneratingBadge(false);
+      }
+    }
+  };
+
+  const handleCopyBadgeLink = () => {
+    if (!badgeData) return;
+    const fullUrl = `${window.location.origin}/verify/${badgeData.badgeId}`;
+    navigator.clipboard.writeText(fullUrl);
+    setCopiedBadgeLink(true);
+    showToast('Verification URL copied to clipboard!', 'success');
+    setTimeout(() => setCopiedBadgeLink(false), 2000);
+  };
 
   const toggleStage = (stageId: string) => {
     setExpandedStages((prev) => ({ ...prev, [stageId]: !prev[stageId] }));
@@ -155,6 +192,14 @@ export const InterviewReportPage: React.FC = () => {
         </Link>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleOpenBadgeModal}
+            className="px-3.5 py-1.5 rounded-xl bg-emerald-600/20 border border-emerald-500/40 hover:bg-emerald-600/30 text-emerald-400 font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-sm"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Share Verified Badge</span>
+          </button>
+
           <Link
             to="/interviews/new"
             className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-md"
@@ -485,6 +530,90 @@ export const InterviewReportPage: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Verified Certificate & Badge Share Modal */}
+      {badgeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden">
+            <button
+              onClick={() => setBadgeModalOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-100">Cryptographic Verification Badge</h3>
+                <p className="text-xs text-slate-400">Shareable tamper-proof certificate for recruiters</p>
+              </div>
+            </div>
+
+            {isGeneratingBadge ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
+                <div className="w-8 h-8 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-xs font-medium">Computing SHA-256 evaluation hash...</p>
+              </div>
+            ) : badgeData ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400">Badge ID</span>
+                    <span className="text-xs font-mono font-bold text-indigo-400 bg-indigo-950/40 px-2.5 py-0.5 rounded-lg border border-indigo-500/20">
+                      {badgeData.badgeId}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400">Overall Score</span>
+                    <span className="text-xs font-mono font-bold text-emerald-400">
+                      {badgeData.overallScore}/100 ({badgeData.verdict.replace(/_/g, ' ').toUpperCase()})
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400">Integrity Proctoring</span>
+                    <span className="text-xs font-semibold text-teal-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" />
+                      {badgeData.integrityScore}% Clean
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800 space-y-1">
+                    <span className="text-[11px] text-slate-500 block">SHA-256 Audit Signature</span>
+                    <p className="text-[10px] font-mono text-slate-400 break-all bg-slate-900/90 p-2 rounded-lg border border-slate-800/60">
+                      {badgeData.verificationHash}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCopyBadgeLink}
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md"
+                  >
+                    {copiedBadgeLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedBadgeLink ? 'Copied Public URL!' : 'Copy Public Share URL'}</span>
+                  </button>
+
+                  <a
+                    href={`/verify/${badgeData.badgeId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 border border-slate-700"
+                  >
+                    <ExternalLink className="w-4 h-4 text-indigo-400" />
+                    <span>View Public Page</span>
+                  </a>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
