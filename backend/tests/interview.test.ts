@@ -317,7 +317,6 @@ describe('Interview Configuration & Session API', () => {
 
     expect(bobDelRes.status).toBe(403);
 
-    // Admin can get Alice's interview -> 200 OK
     const adminGetRes = await request(app)
       .get(`/api/v1/interviews/${interviewId}`)
       .set('Authorization', `Bearer ${adminToken}`);
@@ -325,4 +324,142 @@ describe('Interview Configuration & Session API', () => {
     expect(adminGetRes.status).toBe(200);
     expect(adminGetRes.body.data.id).toBe(interviewId);
   });
+
+
+  it('POST /api/v1/interviews/:id/start initializes live session and opening question', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/interviews')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        type: InterviewType.SYSTEM_DESIGN,
+        difficulty: DifficultyLevel.SENIOR,
+        targetRole: 'Staff Distributed Systems Architect',
+        durationMinutes: 45,
+        focusTopics: ['Distributed Caching', 'Raft Consensus'],
+        strictness: StrictnessMode.HARD
+      });
+
+    const interviewId = createRes.body.data.id;
+
+    const startRes = await request(app)
+      .post(`/api/v1/interviews/${interviewId}/start`)
+      .set('Authorization', `Bearer ${candidateToken}`);
+
+    expect(startRes.status).toBe(200);
+    expect(startRes.body.success).toBe(true);
+    expect(startRes.body.data.session.status).toBe(InterviewStatus.IN_PROGRESS);
+    expect(startRes.body.data.session.stages[0].status).toBe('active');
+    expect(startRes.body.data.message.role).toBe('interviewer');
+    expect(startRes.body.data.message.content.length).toBeGreaterThan(20);
+    expect(startRes.body.data.session.messages.length).toBe(1);
+  });
+
+  it('POST /api/v1/interviews/:id/turn processes candidate response and returns follow-up', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/interviews')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        type: InterviewType.CODING,
+        difficulty: DifficultyLevel.MID,
+        targetRole: 'Software Engineer',
+        durationMinutes: 30,
+        focusTopics: ['Trees', 'Graphs'],
+        strictness: StrictnessMode.REALISTIC
+      });
+
+    const interviewId = createRes.body.data.id;
+
+    // Start session
+    await request(app)
+      .post(`/api/v1/interviews/${interviewId}/start`)
+      .set('Authorization', `Bearer ${candidateToken}`);
+
+    // Submit candidate turn
+    const turnRes = await request(app)
+      .post(`/api/v1/interviews/${interviewId}/turn`)
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        content: 'I would use a breadth-first search with a queue to traverse level by level in O(V + E) time.'
+      });
+
+    expect(turnRes.status).toBe(200);
+    expect(turnRes.body.success).toBe(true);
+    expect(turnRes.body.data.message.role).toBe('interviewer');
+    expect(turnRes.body.data.session.messages.length).toBe(3); // 1 initial + 1 candidate + 1 follow-up
+  });
+
+  it('POST /api/v1/interviews/:id/advance-stage transitions stage status and emits guidance', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/interviews')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        type: InterviewType.TECHNICAL,
+        difficulty: DifficultyLevel.MID,
+        targetRole: 'Backend Engineer',
+        durationMinutes: 30,
+        focusTopics: ['Async I/O'],
+        strictness: StrictnessMode.REALISTIC
+      });
+
+    const interviewId = createRes.body.data.id;
+
+    await request(app)
+      .post(`/api/v1/interviews/${interviewId}/start`)
+      .set('Authorization', `Bearer ${candidateToken}`);
+
+    const advRes = await request(app)
+      .post(`/api/v1/interviews/${interviewId}/advance-stage`)
+      .set('Authorization', `Bearer ${candidateToken}`);
+
+    expect(advRes.status).toBe(200);
+    expect(advRes.body.data.session.currentStageIndex).toBe(1);
+    expect(advRes.body.data.session.stages[0].status).toBe('completed');
+    expect(advRes.body.data.session.stages[1].status).toBe('active');
+    expect(advRes.body.data.message.role).toBe('interviewer');
+  });
+
+  it('POST /api/v1/interviews/:id/pause, resume, and conclude manage lifecycle', async () => {
+    const createRes = await request(app)
+      .post('/api/v1/interviews')
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        type: InterviewType.BEHAVIORAL,
+        difficulty: DifficultyLevel.SENIOR,
+        targetRole: 'Engineering Manager',
+        durationMinutes: 30,
+        focusTopics: ['Conflict Resolution'],
+        strictness: StrictnessMode.REALISTIC
+      });
+
+    const interviewId = createRes.body.data.id;
+
+    // Start
+    await request(app)
+      .post(`/api/v1/interviews/${interviewId}/start`)
+      .set('Authorization', `Bearer ${candidateToken}`);
+
+    // Pause
+    const pauseRes = await request(app)
+      .post(`/api/v1/interviews/${interviewId}/pause`)
+      .set('Authorization', `Bearer ${candidateToken}`);
+    expect(pauseRes.status).toBe(200);
+    expect(pauseRes.body.data.status).toBe(InterviewStatus.PAUSED);
+
+    // Resume
+    const resumeRes = await request(app)
+      .post(`/api/v1/interviews/${interviewId}/resume`)
+      .set('Authorization', `Bearer ${candidateToken}`);
+    expect(resumeRes.status).toBe(200);
+    expect(resumeRes.body.data.status).toBe(InterviewStatus.IN_PROGRESS);
+
+    // Conclude
+    const concludeRes = await request(app)
+      .post(`/api/v1/interviews/${interviewId}/conclude`)
+      .set('Authorization', `Bearer ${candidateToken}`);
+    expect(concludeRes.status).toBe(200);
+    expect(concludeRes.body.data.status).toBe(InterviewStatus.COMPLETED);
+    expect(concludeRes.body.data.completedAt).toBeDefined();
+    expect(concludeRes.body.data.stages.every((s: any) => s.status === 'completed')).toBe(true);
+  });
 });
+

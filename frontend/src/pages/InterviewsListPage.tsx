@@ -300,15 +300,16 @@ export const InterviewsListPage: React.FC = () => {
                     </button>
 
                     <Link
-                      to={`/interviews/new?type=${session.type}`}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline"
+                      to={`/interviews/${session.id}/room`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-xs transition-all"
                     >
-                      Configure Similar
+                      Enter Room
                       <ChevronRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
                 </div>
               </div>
+
             );
           })}
         </div>

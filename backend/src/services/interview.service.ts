@@ -5,6 +5,7 @@ import {
   StrictnessMode,
   InterviewStatus,
   IInterviewStage,
+  IInterviewMessage,
   IInterviewSession,
   IInterviewSummary
 } from '@interviewpilot/shared';
@@ -12,6 +13,8 @@ import { Interview, IInterviewDocument } from '../models/Interview';
 import { CreateInterviewInput, ListInterviewsQueryInput } from '../validators/interview.validator';
 import { AppError } from '../utils/errors';
 import { logger } from '../utils/logger';
+import { env } from '../config/env';
+
 
 export class InterviewService {
   /**
@@ -352,7 +355,322 @@ export class InterviewService {
   }
 
   /**
-   * Updates an interview session status (e.g. IN_PROGRESS, PAUSED, ABANDONED, COMPLETED).
+   * Starts a live interview session and generates opening question turn.
+   */
+  public async startLiveSession(
+    userId: string,
+    interviewId: string,
+    isAdmin = false
+  ): Promise<{ session: IInterviewSession; message: IInterviewMessage }> {
+    if (!mongoose.Types.ObjectId.isValid(interviewId)) {
+      throw new AppError('Invalid interview ID', 400);
+    }
+
+    const interview = await Interview.findById(interviewId);
+    if (!interview) {
+      throw new AppError('Interview session not found', 404);
+    }
+
+    if (!isAdmin && interview.userId.toString() !== userId) {
+      throw new AppError('Unauthorized access to this interview session', 403);
+    }
+
+    if (interview.status === InterviewStatus.CONFIGURING) {
+      interview.status = InterviewStatus.IN_PROGRESS;
+      if (interview.stages && interview.stages.length > 0) {
+        interview.stages[0].status = 'active';
+      }
+    }
+
+    if (!interview.messages || interview.messages.length === 0) {
+      // Generate opening AI interviewer turn
+      let openingMsg = '';
+      let suggestedFollowUps: string[] = [];
+
+      try {
+        const aiUrl = `${env.AI_SERVICE_URL}/api/v1/interview/start`;
+        const res = await fetch(aiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session: interview.toSessionObject() })
+        });
+        if (res.ok) {
+          const data = (await res.json()) as { message: string; suggested_follow_ups?: string[] };
+          openingMsg = data.message;
+          suggestedFollowUps = data.suggested_follow_ups || [];
+        }
+      } catch (err) {
+        logger.warn('[InterviewService] AI Service offline, using resilient local generator');
+      }
+
+      if (!openingMsg) {
+        const stage1 = interview.stages[0]?.title || 'Introduction';
+        openingMsg = `Hello and welcome! We are starting Stage 1: ${stage1} for your ${interview.difficulty.toUpperCase()} ${interview.targetRole} assessment.\n\nCould you introduce your approach and summarize your key design considerations for ${interview.focusTopics.slice(0, 2).join(' and ') || 'this session'}?`;
+        suggestedFollowUps = ['Clarify requirements', 'Outline architecture', 'Discuss edge cases'];
+      }
+
+      const initialMessage: IInterviewMessage = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        role: 'interviewer',
+        content: openingMsg,
+        stageId: interview.stages[0]?.id || 'stage-1',
+        stageIndex: 0,
+        timestamp: new Date().toISOString(),
+        suggestedFollowUps
+      };
+
+      interview.messages = [initialMessage];
+    }
+
+    await interview.save();
+    return {
+      session: interview.toSessionObject(),
+      message: interview.messages[0]
+    };
+  }
+
+  /**
+   * Processes a candidate turn response and generates adaptive AI interviewer follow-up.
+   */
+  public async processTurn(
+    userId: string,
+    interviewId: string,
+    candidateContent: string,
+    isAdmin = false
+  ): Promise<{ session: IInterviewSession; message: IInterviewMessage; stageAdvanced?: boolean }> {
+    if (!mongoose.Types.ObjectId.isValid(interviewId)) {
+      throw new AppError('Invalid interview ID', 400);
+    }
+
+    const interview = await Interview.findById(interviewId);
+    if (!interview) {
+      throw new AppError('Interview session not found', 404);
+    }
+
+    if (!isAdmin && interview.userId.toString() !== userId) {
+      throw new AppError('Unauthorized access to this interview session', 403);
+    }
+
+    if (interview.status === InterviewStatus.COMPLETED) {
+      throw new AppError('This interview session has already been concluded', 400);
+    }
+
+    if (interview.status !== InterviewStatus.IN_PROGRESS) {
+      interview.status = InterviewStatus.IN_PROGRESS;
+    }
+
+    const currentStageIdx = interview.currentStageIndex || 0;
+    const currentStage = interview.stages[currentStageIdx] || interview.stages[0];
+
+    // Append Candidate Message
+    const candidateMsg: IInterviewMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      role: 'candidate',
+      content: candidateContent,
+      stageId: currentStage?.id,
+      stageIndex: currentStageIdx,
+      timestamp: new Date().toISOString()
+    };
+
+    if (!interview.messages) interview.messages = [];
+    interview.messages.push(candidateMsg);
+
+    // Call AI Service for turn response
+    let aiResponseText = '';
+    let stageTransitionRecommended = false;
+    let suggestedFollowUps: string[] = [];
+
+    try {
+      const aiUrl = `${env.AI_SERVICE_URL}/api/v1/interview/turn`;
+      const res = await fetch(aiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session: interview.toSessionObject(),
+          history: interview.messages,
+          candidate_response: candidateContent
+        })
+      });
+
+      if (res.ok) {
+        const data = (await res.json()) as {
+          message: string;
+          stage_transition_recommended?: boolean;
+          suggested_follow_ups?: string[];
+        };
+        aiResponseText = data.message;
+        stageTransitionRecommended = !!data.stage_transition_recommended;
+        suggestedFollowUps = data.suggested_follow_ups || [];
+      }
+    } catch (err) {
+      logger.warn('[InterviewService] AI Service turn offline, using fallback turn generation');
+    }
+
+    if (!aiResponseText) {
+      aiResponseText = `Thank you for the explanation. Looking deeper at your response: How would you optimize this under high concurrency and ensure zero data loss during node failures?`;
+      suggestedFollowUps = ['Explain failover mechanism', 'Discuss trade-offs', 'Provide benchmark metrics'];
+    }
+
+    let stageAdvanced = false;
+    if (stageTransitionRecommended && currentStageIdx < interview.stages.length - 1) {
+      interview.stages[currentStageIdx].status = 'completed';
+      interview.currentStageIndex = currentStageIdx + 1;
+      interview.stages[currentStageIdx + 1].status = 'active';
+      stageAdvanced = true;
+    }
+
+    const aiMsg: IInterviewMessage = {
+      id: `msg-${Date.now() + 1}-${Math.random().toString(36).substring(2, 7)}`,
+      role: 'interviewer',
+      content: aiResponseText,
+      stageId: interview.stages[interview.currentStageIndex]?.id || currentStage?.id,
+      stageIndex: interview.currentStageIndex,
+      timestamp: new Date().toISOString(),
+      suggestedFollowUps
+    };
+
+    interview.messages.push(aiMsg);
+    await interview.save();
+
+    return {
+      session: interview.toSessionObject(),
+      message: aiMsg,
+      stageAdvanced
+    };
+  }
+
+  /**
+   * Advances the interview session to the next stage.
+   */
+  public async advanceStage(
+    userId: string,
+    interviewId: string,
+    isAdmin = false
+  ): Promise<{ session: IInterviewSession; message: IInterviewMessage }> {
+    if (!mongoose.Types.ObjectId.isValid(interviewId)) {
+      throw new AppError('Invalid interview ID', 400);
+    }
+
+    const interview = await Interview.findById(interviewId);
+    if (!interview) {
+      throw new AppError('Interview session not found', 404);
+    }
+
+    if (!isAdmin && interview.userId.toString() !== userId) {
+      throw new AppError('Unauthorized access to this interview session', 403);
+    }
+
+    const currentIdx = interview.currentStageIndex || 0;
+    if (currentIdx >= interview.stages.length - 1) {
+      throw new AppError('Interview is already at the final stage', 400);
+    }
+
+    interview.stages[currentIdx].status = 'completed';
+    interview.currentStageIndex = currentIdx + 1;
+    interview.stages[currentIdx + 1].status = 'active';
+
+    const nextStage = interview.stages[currentIdx + 1];
+
+    let transitionMsg = '';
+    try {
+      const aiUrl = `${env.AI_SERVICE_URL}/api/v1/interview/advance-stage`;
+      const res = await fetch(aiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session: interview.toSessionObject(),
+          new_stage_idx: interview.currentStageIndex
+        })
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { message: string };
+        transitionMsg = data.message;
+      }
+    } catch (err) {
+      logger.warn('[InterviewService] AI advance-stage endpoint offline, using fallback');
+    }
+
+    if (!transitionMsg) {
+      transitionMsg = `We are now advancing to **Stage ${interview.currentStageIndex + 1}: ${nextStage.title}** (${nextStage.durationMinutes} min).\n\n${nextStage.description}\n\nPlease proceed with your solution addressing this stage's scope.`;
+    }
+
+    const systemTurn: IInterviewMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      role: 'interviewer',
+      content: transitionMsg,
+      stageId: nextStage.id,
+      stageIndex: interview.currentStageIndex,
+      timestamp: new Date().toISOString(),
+      suggestedFollowUps: ['Present high level architecture', 'Discuss edge cases', 'Verify complexity']
+    };
+
+    if (!interview.messages) interview.messages = [];
+    interview.messages.push(systemTurn);
+
+    await interview.save();
+    return {
+      session: interview.toSessionObject(),
+      message: systemTurn
+    };
+  }
+
+  /**
+   * Pauses an active interview session.
+   */
+  public async pauseSession(userId: string, interviewId: string, isAdmin = false): Promise<IInterviewSession> {
+    return this.updateInterviewStatus(userId, interviewId, InterviewStatus.PAUSED, isAdmin);
+  }
+
+  /**
+   * Resumes a paused interview session.
+   */
+  public async resumeSession(userId: string, interviewId: string, isAdmin = false): Promise<IInterviewSession> {
+    return this.updateInterviewStatus(userId, interviewId, InterviewStatus.IN_PROGRESS, isAdmin);
+  }
+
+  /**
+   * Concludes an interview session, calculates duration, and marks completed.
+   */
+  public async concludeSession(userId: string, interviewId: string, isAdmin = false): Promise<IInterviewSession> {
+    if (!mongoose.Types.ObjectId.isValid(interviewId)) {
+      throw new AppError('Invalid interview ID', 400);
+    }
+
+    const interview = await Interview.findById(interviewId);
+    if (!interview) {
+      throw new AppError('Interview session not found', 404);
+    }
+
+    if (!isAdmin && interview.userId.toString() !== userId) {
+      throw new AppError('Unauthorized access to this interview session', 403);
+    }
+
+    interview.status = InterviewStatus.COMPLETED;
+    interview.completedAt = new Date();
+    if (interview.stages) {
+      interview.stages.forEach(st => (st.status = 'completed'));
+    }
+
+    const durationSeconds = Math.max(60, Math.floor((Date.now() - new Date(interview.createdAt).getTime()) / 1000));
+    interview.durationSeconds = durationSeconds;
+
+    const concludingMsg: IInterviewMessage = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      role: 'interviewer',
+      content: `Thank you for completing this **${interview.title}** session!\n\nAll interview stages have concluded. Your detailed evaluation scorecard, skill breakdown, and personalized recommendations are now available.`,
+      stageIndex: interview.currentStageIndex,
+      timestamp: new Date().toISOString()
+    };
+
+    if (!interview.messages) interview.messages = [];
+    interview.messages.push(concludingMsg);
+
+    await interview.save();
+    return interview.toSessionObject();
+  }
+
+  /**
+   * Updates an interview session status.
    */
   public async updateInterviewStatus(
     userId: string,
@@ -379,14 +697,13 @@ export class InterviewService {
     }
 
     await interview.save();
-    logger.info(`[InterviewService] Interview ${interviewId} status updated to ${status}`);
-
     return interview.toSessionObject();
   }
 
   /**
    * Deletes an interview session.
    */
+
   public async deleteInterview(userId: string, interviewId: string, isAdmin = false): Promise<void> {
     if (!mongoose.Types.ObjectId.isValid(interviewId)) {
       throw new AppError('Invalid interview ID', 400);
@@ -407,3 +724,4 @@ export class InterviewService {
 }
 
 export const interviewService = new InterviewService();
+

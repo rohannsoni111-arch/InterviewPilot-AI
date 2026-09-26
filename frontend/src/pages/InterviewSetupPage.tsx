@@ -280,11 +280,12 @@ export const InterviewSetupPage: React.FC = () => {
     try {
       const response = await api.post('/interviews', payload);
       const session: IInterviewSession = response.data.data;
-      showToast(`Session "${session.title}" prepared with ${session.stages.length} stages.`, 'success');
+      showToast(`Session "${session.title}" initialized. Entering Live Room!`, 'success');
 
-      // Navigate to interview session list or future live room
-      navigate('/interviews');
+      // Navigate to live interview room
+      navigate(`/interviews/${session.id}/room`);
     } catch (err: unknown) {
+
       const error = err as any;
       const message = error.response?.data?.error?.message || error.message || 'Could not configure interview session';
       setValidationError(message);

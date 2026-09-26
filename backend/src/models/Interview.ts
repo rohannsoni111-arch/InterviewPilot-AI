@@ -5,6 +5,7 @@ import {
   InterviewStatus,
   StrictnessMode,
   IInterviewStage,
+  IInterviewMessage,
   IInterviewSession,
   IInterviewSummary
 } from '@interviewpilot/shared';
@@ -26,6 +27,7 @@ export interface IInterviewDocument extends Document {
   customInstructions?: string;
   stages: IInterviewStage[];
   currentStageIndex: number;
+  messages: IInterviewMessage[];
   overallScore?: number;
   dimensionScores?: {
     technical?: number;
@@ -49,7 +51,21 @@ export interface IInterviewDocument extends Document {
   toSessionObject(): IInterviewSession;
 }
 
+const MessageSchema = new Schema<IInterviewMessage>(
+  {
+    id: { type: String, required: true },
+    role: { type: String, enum: ['interviewer', 'candidate', 'system'], required: true },
+    content: { type: String, required: true },
+    stageId: { type: String },
+    stageIndex: { type: Number },
+    timestamp: { type: String, required: true },
+    suggestedFollowUps: { type: [String], default: [] }
+  },
+  { _id: false }
+);
+
 const StageSchema = new Schema<IInterviewStage>(
+
   {
     id: { type: String, required: true },
     title: { type: String, required: true },
@@ -145,12 +161,17 @@ const InterviewSchema = new Schema<IInterviewDocument>(
       type: Number,
       default: 0
     },
+    messages: {
+      type: [MessageSchema],
+      default: []
+    },
     overallScore: {
       type: Number,
       min: 0,
       max: 100,
       default: null
     },
+
     dimensionScores: {
       technical: { type: Number, min: 0, max: 100 },
       communication: { type: Number, min: 0, max: 100 },
@@ -209,7 +230,9 @@ InterviewSchema.methods.toSessionObject = function (): IInterviewSession {
     customInstructions: this.customInstructions,
     stages: this.stages || [],
     currentStageIndex: this.currentStageIndex || 0,
+    messages: this.messages || [],
     overallScore: this.overallScore ?? undefined,
+
     dimensionScores: this.dimensionScores ? JSON.parse(JSON.stringify(this.dimensionScores)) : undefined,
     feedbackSummary: this.feedbackSummary ? {
       strengths: this.feedbackSummary.strengths || [],

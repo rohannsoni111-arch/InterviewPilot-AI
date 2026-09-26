@@ -3,7 +3,8 @@ import { interviewService } from '../services/interview.service';
 import {
   createInterviewSchema,
   updateInterviewStatusSchema,
-  listInterviewsQuerySchema
+  listInterviewsQuerySchema,
+  submitTurnSchema
 } from '../validators/interview.validator';
 import { UserRole } from '@interviewpilot/shared';
 import { AuthenticatedRequest } from '../middleware/auth';
@@ -64,6 +65,120 @@ export class InterviewController {
     }
   };
 
+  public startLiveSession = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!._id.toString();
+      const isAdmin = req.user!.role === UserRole.ADMIN;
+      const result = await interviewService.startLiveSession(userId, req.params.id, isAdmin);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        meta: {
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public submitTurn = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!._id.toString();
+      const isAdmin = req.user!.role === UserRole.ADMIN;
+      const validatedInput = submitTurnSchema.parse(req.body);
+      const result = await interviewService.processTurn(
+        userId,
+        req.params.id,
+        validatedInput.content,
+        isAdmin
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        meta: {
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public advanceStage = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!._id.toString();
+      const isAdmin = req.user!.role === UserRole.ADMIN;
+      const result = await interviewService.advanceStage(userId, req.params.id, isAdmin);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        meta: {
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public pauseSession = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!._id.toString();
+      const isAdmin = req.user!.role === UserRole.ADMIN;
+      const session = await interviewService.pauseSession(userId, req.params.id, isAdmin);
+
+      res.status(200).json({
+        success: true,
+        data: session,
+        meta: {
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public resumeSession = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!._id.toString();
+      const isAdmin = req.user!.role === UserRole.ADMIN;
+      const session = await interviewService.resumeSession(userId, req.params.id, isAdmin);
+
+      res.status(200).json({
+        success: true,
+        data: session,
+        meta: {
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public concludeSession = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!._id.toString();
+      const isAdmin = req.user!.role === UserRole.ADMIN;
+      const session = await interviewService.concludeSession(userId, req.params.id, isAdmin);
+
+      res.status(200).json({
+        success: true,
+        data: session,
+        meta: {
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   public updateStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user!._id.toString();
@@ -108,4 +223,5 @@ export class InterviewController {
 }
 
 export const interviewController = new InterviewController();
+
 

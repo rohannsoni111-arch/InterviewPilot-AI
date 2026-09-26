@@ -129,6 +129,28 @@ export interface CreateInterviewDto {
   customInstructions?: string;
 }
 
+export interface IInterviewMessage {
+  id: string;
+  role: 'interviewer' | 'candidate' | 'system';
+  content: string;
+  stageId?: string;
+  stageIndex?: number;
+  timestamp: string;
+  suggestedFollowUps?: string[];
+}
+
+export interface InterviewTurnDto {
+  content: string;
+}
+
+export interface InterviewTurnResponse {
+  message: IInterviewMessage;
+  session: IInterviewSession;
+  stageAdvanced?: boolean;
+  stageCompleted?: boolean;
+  sessionCompleted?: boolean;
+}
+
 export interface IInterviewSession {
   id: string;
   userId: string;
@@ -146,6 +168,7 @@ export interface IInterviewSession {
   customInstructions?: string;
   stages: IInterviewStage[];
   currentStageIndex: number;
+  messages?: IInterviewMessage[];
   overallScore?: number;
   dimensionScores?: Record<string, number>;
   feedbackSummary?: {
@@ -157,6 +180,7 @@ export interface IInterviewSession {
   createdAt: string;
   updatedAt: string;
 }
+
 
 export interface IInterviewSummary {
   id: string;

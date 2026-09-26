@@ -44,6 +44,16 @@ export const listInterviewsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(10)
 });
 
+export const submitTurnSchema = z.object({
+  content: z
+    .string({ required_error: 'Content is required' })
+    .trim()
+    .min(1, 'Response content cannot be empty')
+    .max(8000, 'Response cannot exceed 8,000 characters')
+});
+
 export type CreateInterviewInput = z.infer<typeof createInterviewSchema>;
 export type UpdateInterviewStatusInput = z.infer<typeof updateInterviewStatusSchema>;
 export type ListInterviewsQueryInput = z.infer<typeof listInterviewsQuerySchema>;
+export type SubmitTurnInput = z.infer<typeof submitTurnSchema>;
+
