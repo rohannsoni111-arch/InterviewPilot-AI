@@ -8,6 +8,7 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { HomePage } from './pages/HomePage';
+import { DashboardPage } from './pages/DashboardPage';
 import { HealthPage } from './pages/HealthPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -40,6 +41,14 @@ export const App: React.FC = () => {
                     <Route path="auth/register" element={<RegisterPage />} />
                     
                     {/* Protected Routes */}
+                    <Route
+                      path="dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <DashboardPage />
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route
                       path="profile"
                       element={

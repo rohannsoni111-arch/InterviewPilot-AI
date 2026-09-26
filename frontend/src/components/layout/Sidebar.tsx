@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
+  LayoutDashboard,
   Home, 
   Activity, 
   Layers, 
@@ -23,6 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
   const { user, isAuthenticated } = useAuth();
 
   const coreLinks = [
+    ...(isAuthenticated ? [{ to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }] : []),
     { to: '/', label: 'Overview', icon: Home },
     { to: '/health', label: 'System Health', icon: Activity },
     { to: '/interviews', label: 'Interviews (Phase 3+)', icon: Layers },
@@ -111,9 +113,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
           <div className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 text-xs space-y-1 text-slate-500 dark:text-slate-400">
             <div className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
               <ShieldCheck className="w-3.5 h-3.5 text-brand-500" />
-              Phase 1 Active
+              Phase 2 Active
             </div>
-            <p className="leading-relaxed">Authentication and RBAC profiles enabled.</p>
+            <p className="leading-relaxed">Candidate dashboard and performance engine active.</p>
           </div>
         </div>
       </aside>

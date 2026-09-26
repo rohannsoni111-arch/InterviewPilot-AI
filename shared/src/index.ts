@@ -99,6 +99,77 @@ export interface ChangePasswordDto {
   newPassword: string;
 }
 
+// Dashboard & Analytics Types
+export interface IInterviewSummary {
+  id: string;
+  title: string;
+  type: InterviewType;
+  difficulty: DifficultyLevel;
+  status: InterviewStatus;
+  overallScore?: number;
+  durationSeconds: number;
+  topics: string[];
+  completedAt?: string;
+  createdAt: string;
+}
+
+export interface ISkillBreakdown {
+  skill: string;
+  score: number; // 0-100
+  benchmark: number; // e.g. 75
+  assessmentsCount: number;
+  status: 'proficient' | 'developing' | 'needs_practice';
+}
+
+export interface IProgressDataPoint {
+  date: string;
+  score: number;
+  interviewType: InterviewType;
+  interviewTitle: string;
+}
+
+export interface IPracticeRecommendation {
+  id: string;
+  topic: string;
+  type: InterviewType;
+  priority: 'high' | 'medium' | 'low';
+  reason: string;
+  suggestedDurationMinutes: number;
+}
+
+export interface IDashboardData {
+  hasData: boolean;
+  user: {
+    name: string;
+    role: UserRole;
+    headline?: string;
+    targetRoles: string[];
+  };
+  metrics: {
+    readinessScore: number | null; // 0-100 or null if no interviews
+    readinessTrend: number | null; // e.g. +5% or null
+    totalInterviews: number;
+    completedInterviews: number;
+    totalPracticeSeconds: number;
+    averageScore: number | null;
+  };
+  skillBreakdown: ISkillBreakdown[];
+  progressHistory: IProgressDataPoint[];
+  recentInterviews: IInterviewSummary[];
+  recentWeaknesses: {
+    topic: string;
+    description: string;
+    frequency: number;
+    severity: 'critical' | 'moderate' | 'minor';
+  }[];
+  recentImprovements: {
+    topic: string;
+    delta: number;
+    description: string;
+  }[];
+  recommendedPractice: IPracticeRecommendation[];
+}
+
 export interface ServiceHealth {
   status: 'connected' | 'disconnected' | 'mocked' | 'reachable' | 'unreachable' | 'disabled';
   latencyMs?: number;
