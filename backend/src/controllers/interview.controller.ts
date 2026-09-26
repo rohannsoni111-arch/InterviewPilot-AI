@@ -257,8 +257,45 @@ export class InterviewController {
       next(error);
     }
   };
+
+  public recordProctoringEvent = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!._id.toString();
+      const isAdmin = req.user!.role === UserRole.ADMIN;
+      const event = await interviewService.recordProctoringEvent(userId, req.params.id, req.body, isAdmin);
+
+      res.status(201).json({
+        success: true,
+        data: event,
+        meta: {
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public getProctoringReport = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!._id.toString();
+      const isAdmin = req.user!.role === UserRole.ADMIN;
+      const report = await interviewService.getProctoringReport(userId, req.params.id, isAdmin);
+
+      res.status(200).json({
+        success: true,
+        data: report,
+        meta: {
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export const interviewController = new InterviewController();
+
 
 

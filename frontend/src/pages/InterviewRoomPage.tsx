@@ -11,6 +11,7 @@ import { api } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { CodeEditor } from '../components/CodeEditor/CodeEditor';
 import { AudioVisualizer } from '../components/AudioVisualizer/AudioVisualizer';
+import { useProctoring } from '../hooks/useProctoring';
 import {
   Sparkles,
   Send,
@@ -27,7 +28,8 @@ import {
   Zap,
   Code2,
   MessageSquare,
-  Columns
+  Columns,
+  Shield
 } from 'lucide-react';
 
 export const InterviewRoomPage: React.FC = () => {
@@ -53,6 +55,12 @@ export const InterviewRoomPage: React.FC = () => {
     speechPitch: 1.0,
     sttLanguage: 'en-US',
     autoReadResponse: true
+  });
+
+  const { tabSwitchCount, isWindowFocused } = useProctoring({
+    sessionId: id,
+    enabled: session?.status === InterviewStatus.IN_PROGRESS,
+    onWarning: (msg) => showToast(msg, 'warning')
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -357,6 +365,18 @@ export const InterviewRoomPage: React.FC = () => {
                 <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                   Live Room
+                </span>
+
+                <span
+                  title={isWindowFocused ? 'Proctoring Active: Window Focused' : 'Warning: Window Unfocused'}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${
+                    isWindowFocused
+                      ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                      : 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse'
+                  }`}
+                >
+                  <Shield className="w-3 h-3" />
+                  <span>{tabSwitchCount > 0 ? `${tabSwitchCount} Switched` : 'Proctored'}</span>
                 </span>
               </div>
               <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">

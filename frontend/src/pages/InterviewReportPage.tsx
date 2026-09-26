@@ -20,7 +20,9 @@ import {
   ListOrdered,
   BookOpen,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 
 const VERDICT_CONFIG: Record<
@@ -390,6 +392,63 @@ export const InterviewReportPage: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* Candidate Proctoring & Integrity Telemetry Card */}
+      {report.proctoringReport && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              {report.proctoringReport.flagLevel === 'clean' ? (
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+              ) : (
+                <ShieldAlert className="w-5 h-5 text-amber-400" />
+              )}
+              <h2 className="text-base sm:text-lg font-bold text-slate-100">Candidate Proctoring & Integrity Telemetry</h2>
+            </div>
+
+            <div
+              className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase border flex items-center gap-1.5 ${
+                report.proctoringReport.flagLevel === 'clean'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  : report.proctoringReport.flagLevel === 'suspicious'
+                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+              }`}
+            >
+              <span>Status: {report.proctoringReport.flagLevel}</span>
+              <span>•</span>
+              <span className="font-mono">{report.proctoringReport.integrityScore}/100</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+            <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-2xl">
+              <span className="text-xs text-slate-400">Integrity Score</span>
+              <div className="text-xl font-extrabold font-mono text-indigo-400 mt-1">
+                {report.proctoringReport.integrityScore}%
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-2xl">
+              <span className="text-xs text-slate-400">Window Blurs / Tab Switches</span>
+              <div className="text-xl font-extrabold font-mono text-slate-200 mt-1">
+                {report.proctoringReport.tabSwitchCount}
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-2xl">
+              <span className="text-xs text-slate-400">Clipboard Injections</span>
+              <div className="text-xl font-extrabold font-mono text-slate-200 mt-1">
+                {report.proctoringReport.pasteCount}
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-300 p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 leading-relaxed">
+            {report.proctoringReport.summary}
+          </p>
+        </div>
+      )}
 
       {/* Actionable Practice Roadmap */}
       <div className="bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-4">

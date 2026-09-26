@@ -261,6 +261,7 @@ export interface IInterviewEvaluationReport {
   strengths: string[];
   weaknesses: string[];
   actionPlan: string[];
+  proctoringReport?: IProctoringReport;
   generatedAt: string;
 }
 
@@ -285,6 +286,8 @@ export interface IInterviewSession {
   overallScore?: number;
   dimensionScores?: Record<string, number>;
   evaluationReport?: IInterviewEvaluationReport;
+  proctoringEvents?: IProctoringEvent[];
+  proctoringReport?: IProctoringReport;
   feedbackSummary?: {
     strengths: string[];
     weaknesses: string[];
@@ -400,3 +403,128 @@ export interface ApiResponse<T = unknown> {
     requestId?: string;
   };
 }
+
+// ==========================================
+// Phase 7: Resume, JD Matching & Proctoring
+// ==========================================
+
+export interface IResumeSkills {
+  technical: string[];
+  frameworks: string[];
+  tools: string[];
+  soft: string[];
+}
+
+export interface IResumeExperience {
+  company: string;
+  role: string;
+  duration: string;
+  highlights: string[];
+}
+
+export interface IResumeEducation {
+  institution: string;
+  degree: string;
+  graduationYear?: string;
+}
+
+export interface IResumeProject {
+  name: string;
+  description: string;
+  technologies: string[];
+}
+
+export interface IResumeParsedData {
+  candidateName?: string;
+  email?: string;
+  phone?: string;
+  summary?: string;
+  skills: IResumeSkills;
+  experience: IResumeExperience[];
+  education: IResumeEducation[];
+  projects: IResumeProject[];
+}
+
+export interface IResume {
+  id: string;
+  userId: string;
+  title: string;
+  fileName?: string;
+  fileType?: string;
+  rawText: string;
+  parsedData: IResumeParsedData;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IResumeSummary {
+  id: string;
+  title: string;
+  fileName?: string;
+  skillsCount: number;
+  topSkills: string[];
+  experienceCount: number;
+  createdAt: string;
+}
+
+export interface CreateResumeDto {
+  title: string;
+  fileName?: string;
+  fileType?: string;
+  rawText: string;
+}
+
+export interface IResumeMatchResult {
+  matchScore: number; // 0 - 100
+  targetRole: string;
+  matchedSkills: string[];
+  missingSkills: string[];
+  strengthSummary: string;
+  gapSummary: string;
+  recommendedFocusTopics: string[];
+  suggestedSeniority: DifficultyLevel;
+  tailoredInterviewPrompts: string[];
+}
+
+export interface ResumeMatchDto {
+  resumeId?: string;
+  rawResumeText?: string;
+  jobDescription: string;
+  targetRole: string;
+}
+
+export enum ProctoringEventType {
+  TAB_BLUR = 'tab_blur',
+  TAB_FOCUS = 'tab_focus',
+  CLIPBOARD_COPY = 'clipboard_copy',
+  CLIPBOARD_PASTE = 'clipboard_paste',
+  FULLSCREEN_EXIT = 'fullscreen_exit',
+  SUSPICIOUS_CADENCE = 'suspicious_cadence'
+}
+
+export interface IProctoringEvent {
+  id: string;
+  sessionId: string;
+  timestamp: string;
+  eventType: ProctoringEventType;
+  severity: 'low' | 'medium' | 'high';
+  metadata?: Record<string, any>;
+}
+
+export interface RecordProctoringEventDto {
+  eventType: ProctoringEventType;
+  severity?: 'low' | 'medium' | 'high';
+  metadata?: Record<string, any>;
+}
+
+export interface IProctoringReport {
+  sessionId: string;
+  integrityScore: number; // 0 - 100 (100 is pristine)
+  flagLevel: 'clean' | 'suspicious' | 'flagged';
+  totalViolations: number;
+  tabSwitchCount: number;
+  pasteCount: number;
+  events: IProctoringEvent[];
+  summary: string;
+}
+

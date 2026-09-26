@@ -19,6 +19,8 @@ router.post('/:id/resume', interviewController.resumeSession);
 router.post('/:id/conclude', interviewController.concludeSession);
 router.post('/:id/evaluate', interviewController.evaluateSession);
 router.get('/:id/report', interviewController.getEvaluationReport);
+router.post('/:id/proctoring/events', interviewController.recordProctoringEvent);
+router.get('/:id/proctoring/report', interviewController.getProctoringReport);
 router.patch('/:id/status', interviewController.updateStatus);
 router.delete('/:id', interviewController.deleteInterview);
 

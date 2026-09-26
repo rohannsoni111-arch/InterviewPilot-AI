@@ -8,7 +8,6 @@ import {
   Layers, 
   PlusCircle,
   Cpu, 
-  Database, 
   FileText, 
   BarChart3, 
   User,
@@ -34,10 +33,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
       : []),
     { to: '/', label: 'Overview', icon: Home },
     { to: '/health', label: 'System Health', icon: Activity },
-    { to: '/coding', label: 'Code Sandbox (Phase 10+)', icon: Cpu },
-    { to: '/sql', label: 'SQL Sandbox (Phase 12+)', icon: Database },
-    { to: '/resume', label: 'Resume Intel (Phase 6+)', icon: FileText },
-    { to: '/analytics', label: 'Analytics (Phase 20+)', icon: BarChart3 },
+    { to: '/coding', label: 'Code Studio', icon: Cpu },
+    { to: '/resumes', label: 'Resume & JD Match', icon: FileText },
+    { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   ];
 
 

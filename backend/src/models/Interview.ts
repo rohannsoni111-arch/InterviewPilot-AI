@@ -8,7 +8,9 @@ import {
   IInterviewMessage,
   IInterviewSession,
   IInterviewSummary,
-  IInterviewEvaluationReport
+  IInterviewEvaluationReport,
+  IProctoringEvent,
+  IProctoringReport
 } from '@interviewpilot/shared';
 
 export interface IInterviewDocument extends Document {
@@ -31,6 +33,8 @@ export interface IInterviewDocument extends Document {
   messages: IInterviewMessage[];
   overallScore?: number;
   evaluationReport?: IInterviewEvaluationReport;
+  proctoringEvents?: IProctoringEvent[];
+  proctoringReport?: IProctoringReport;
   dimensionScores?: {
     technical?: number;
     communication?: number;
@@ -178,6 +182,23 @@ const InterviewSchema = new Schema<IInterviewDocument>(
       type: Schema.Types.Mixed,
       default: null
     },
+    proctoringEvents: {
+      type: [
+        {
+          id: { type: String, required: true },
+          sessionId: { type: String, required: true },
+          timestamp: { type: String, required: true },
+          eventType: { type: String, required: true },
+          severity: { type: String, enum: ['low', 'medium', 'high'], default: 'low' },
+          metadata: { type: Schema.Types.Mixed }
+        }
+      ],
+      default: []
+    },
+    proctoringReport: {
+      type: Schema.Types.Mixed,
+      default: null
+    },
     dimensionScores: {
       technical: { type: Number, min: 0, max: 100 },
       communication: { type: Number, min: 0, max: 100 },
@@ -241,6 +262,8 @@ InterviewSchema.methods.toSessionObject = function (): IInterviewSession {
     messages: this.messages || [],
     overallScore: this.overallScore ?? undefined,
     evaluationReport: this.evaluationReport || undefined,
+    proctoringEvents: this.proctoringEvents || [],
+    proctoringReport: this.proctoringReport || undefined,
     dimensionScores: this.dimensionScores ? JSON.parse(JSON.stringify(this.dimensionScores)) : undefined,
     feedbackSummary: this.feedbackSummary ? {
       strengths: this.feedbackSummary.strengths || [],

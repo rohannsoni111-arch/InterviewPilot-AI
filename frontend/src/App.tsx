@@ -18,6 +18,7 @@ import { InterviewSetupPage } from './pages/InterviewSetupPage';
 import { InterviewsListPage } from './pages/InterviewsListPage';
 import { InterviewRoomPage } from './pages/InterviewRoomPage';
 import { InterviewReportPage } from './pages/InterviewReportPage';
+import { ResumesPage } from './pages/ResumesPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 const queryClient = new QueryClient({
@@ -66,6 +67,14 @@ export const App: React.FC = () => {
                       element={
                         <ProtectedRoute>
                           <InterviewSetupPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="resumes"
+                      element={
+                        <ProtectedRoute>
+                          <ResumesPage />
                         </ProtectedRoute>
                       }
                     />

@@ -9,7 +9,11 @@ import {
   IInterviewSession,
   IInterviewSummary,
   HiringVerdict,
-  IInterviewEvaluationReport
+  IInterviewEvaluationReport,
+  IProctoringEvent,
+  IProctoringReport,
+  RecordProctoringEventDto,
+  ProctoringEventType
 } from '@interviewpilot/shared';
 import { Interview, IInterviewDocument } from '../models/Interview';
 import { CreateInterviewInput, ListInterviewsQueryInput } from '../validators/interview.validator';
@@ -773,6 +777,11 @@ export class InterviewService {
       report = this.generateFallbackReport(interview);
     }
 
+    // Evaluate Proctoring Telemetry
+    const proctoringReport = await this.evaluateProctoringEvents(interview);
+    report.proctoringReport = proctoringReport;
+    interview.proctoringReport = proctoringReport;
+
     interview.evaluationReport = report;
     interview.overallScore = report.overallScore;
     interview.status = InterviewStatus.COMPLETED;
@@ -801,6 +810,131 @@ export class InterviewService {
       return evaluated.report;
     }
     return interview.evaluationReport;
+  }
+
+  /**
+   * Records a proctoring telemetry event for a live interview session.
+   */
+  public async recordProctoringEvent(
+    userId: string,
+    interviewId: string,
+    dto: RecordProctoringEventDto,
+    isAdmin = false
+  ): Promise<IProctoringEvent> {
+    if (!mongoose.Types.ObjectId.isValid(interviewId)) {
+      throw new AppError('Invalid interview ID', 400);
+    }
+
+    const interview = await Interview.findById(interviewId);
+    if (!interview) {
+      throw new AppError('Interview session not found', 404);
+    }
+
+    if (!isAdmin && interview.userId.toString() !== userId) {
+      throw new AppError('Unauthorized access to this interview session', 403);
+    }
+
+    const event: IProctoringEvent = {
+      id: `proc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      sessionId: interviewId,
+      timestamp: new Date().toISOString(),
+      eventType: dto.eventType,
+      severity: dto.severity || 'low',
+      metadata: dto.metadata
+    };
+
+    if (!interview.proctoringEvents) {
+      interview.proctoringEvents = [];
+    }
+
+    interview.proctoringEvents.push(event);
+    await interview.save();
+
+    logger.debug(`[InterviewService] Recorded proctoring event ${event.eventType} for session ${interviewId}`);
+    return event;
+  }
+
+  /**
+   * Retrieves or computes the proctoring report for a session.
+   */
+  public async getProctoringReport(
+    userId: string,
+    interviewId: string,
+    isAdmin = false
+  ): Promise<IProctoringReport> {
+    if (!mongoose.Types.ObjectId.isValid(interviewId)) {
+      throw new AppError('Invalid interview ID', 400);
+    }
+
+    const interview = await Interview.findById(interviewId);
+    if (!interview) {
+      throw new AppError('Interview session not found', 404);
+    }
+
+    if (!isAdmin && interview.userId.toString() !== userId) {
+      throw new AppError('Unauthorized access to this interview session', 403);
+    }
+
+    if (interview.proctoringReport) {
+      return interview.proctoringReport;
+    }
+
+    const report = await this.evaluateProctoringEvents(interview);
+    interview.proctoringReport = report;
+    await interview.save();
+    return report;
+  }
+
+  private async evaluateProctoringEvents(interview: any): Promise<IProctoringReport> {
+    const events = interview.proctoringEvents || [];
+    let report: IProctoringReport | null = null;
+
+    try {
+      const aiUrl = `${env.AI_SERVICE_URL}/api/v1/resume/proctoring/evaluate`;
+      const res = await fetch(aiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: interview._id.toString(),
+          events
+        })
+      });
+
+      if (res.ok) {
+        const body = (await res.json()) as { success: boolean; data: IProctoringReport };
+        if (body.success && body.data) {
+          report = body.data;
+        }
+      }
+    } catch {
+      logger.warn('[InterviewService] AI Service proctoring evaluator offline, using fallback');
+    }
+
+    if (!report) {
+      const tabSwitches = events.filter((e: any) => e.eventType === 'tab_blur' || e.eventType === 'fullscreen_exit').length;
+      const pastes = events.filter((e: any) => e.eventType === 'clipboard_paste').length;
+      let score = 100;
+      if (tabSwitches > 5) score -= (tabSwitches - 5) * 6 + 15;
+      else if (tabSwitches > 2) score -= (tabSwitches - 2) * 4;
+      score = Math.max(20, Math.min(100, score));
+
+      const flagLevel = score >= 85 ? 'clean' : score >= 65 ? 'suspicious' : 'flagged';
+
+      report = {
+        sessionId: interview._id.toString(),
+        integrityScore: score,
+        flagLevel,
+        totalViolations: events.length,
+        tabSwitchCount: tabSwitches,
+        pasteCount: pastes,
+        events,
+        summary: score >= 85
+          ? 'Session integrity verified. Candidate maintained window focus throughout the assessment.'
+          : `Potential test integrity flag: ${tabSwitches} window blur(s) and ${pastes} paste event(s) recorded.`
+      };
+    }
+
+    return report;
   }
 
   private generateFallbackReport(interview: any): IInterviewEvaluationReport {
@@ -846,4 +980,5 @@ export class InterviewService {
 }
 
 export const interviewService = new InterviewService();
+
 
