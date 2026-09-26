@@ -17,6 +17,8 @@ router.post('/:id/advance-stage', interviewController.advanceStage);
 router.post('/:id/pause', interviewController.pauseSession);
 router.post('/:id/resume', interviewController.resumeSession);
 router.post('/:id/conclude', interviewController.concludeSession);
+router.post('/:id/evaluate', interviewController.evaluateSession);
+router.get('/:id/report', interviewController.getEvaluationReport);
 router.patch('/:id/status', interviewController.updateStatus);
 router.delete('/:id', interviewController.deleteInterview);
 

@@ -226,6 +226,44 @@ export interface InterviewTurnResponse {
   sessionCompleted?: boolean;
 }
 
+export enum HiringVerdict {
+  STRONG_HIRE = 'strong_hire',
+  HIRE = 'hire',
+  LEAN_HIRE = 'lean_hire',
+  LEAN_NO_HIRE = 'lean_no_hire',
+  NO_HIRE = 'no_hire'
+}
+
+export interface IDimensionScore {
+  dimension: string;
+  score: number;
+  maxScore: number;
+  feedback: string;
+  status: 'exceeds' | 'meets' | 'below';
+}
+
+export interface IStageEvaluation {
+  stageId: string;
+  stageTitle: string;
+  score: number;
+  feedback: string;
+  keyObservations: string[];
+  strengths: string[];
+  areasForImprovement: string[];
+}
+
+export interface IInterviewEvaluationReport {
+  overallScore: number;
+  verdict: HiringVerdict;
+  summary: string;
+  dimensionScores: IDimensionScore[];
+  stageEvaluations: IStageEvaluation[];
+  strengths: string[];
+  weaknesses: string[];
+  actionPlan: string[];
+  generatedAt: string;
+}
+
 export interface IInterviewSession {
   id: string;
   userId: string;
@@ -246,6 +284,7 @@ export interface IInterviewSession {
   messages?: IInterviewMessage[];
   overallScore?: number;
   dimensionScores?: Record<string, number>;
+  evaluationReport?: IInterviewEvaluationReport;
   feedbackSummary?: {
     strengths: string[];
     weaknesses: string[];
@@ -256,7 +295,6 @@ export interface IInterviewSession {
   updatedAt: string;
 }
 
-
 export interface IInterviewSummary {
   id: string;
   title: string;
@@ -265,8 +303,10 @@ export interface IInterviewSummary {
   targetRole?: string;
   status: InterviewStatus;
   overallScore?: number;
+  verdict?: HiringVerdict;
   durationSeconds: number;
   topics: string[];
+  evaluationReport?: IInterviewEvaluationReport;
   completedAt?: string;
   createdAt: string;
 }

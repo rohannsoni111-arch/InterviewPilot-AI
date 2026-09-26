@@ -221,6 +221,42 @@ export class InterviewController {
       next(error);
     }
   };
+
+  public evaluateSession = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!._id.toString();
+      const isAdmin = req.user!.role === UserRole.ADMIN;
+      const result = await interviewService.evaluateInterview(userId, req.params.id, isAdmin);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        meta: {
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public getEvaluationReport = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!._id.toString();
+      const isAdmin = req.user!.role === UserRole.ADMIN;
+      const report = await interviewService.getEvaluationReport(userId, req.params.id, isAdmin);
+
+      res.status(200).json({
+        success: true,
+        data: report,
+        meta: {
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export const interviewController = new InterviewController();

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Body
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from app.services.interviewer_service import InterviewerService
+from app.services.evaluation_service import EvaluationService, EvaluateSessionRequest
 
 router = APIRouter(prefix="/api/v1/interview")
 
@@ -72,5 +73,16 @@ async def advance_stage(payload: AdvanceStageRequest):
             success=True,
             message=res["message"]
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/evaluate")
+async def evaluate_interview(payload: EvaluateSessionRequest):
+    try:
+        report = EvaluationService.evaluate_interview(payload)
+        return {
+            "success": True,
+            "data": report
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

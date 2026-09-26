@@ -290,8 +290,8 @@ export const InterviewRoomPage: React.FC = () => {
     try {
       const res = await api.post(`/interviews/${id}/conclude`);
       if (res.data.success) {
-        showToast('Interview concluded successfully!', 'success');
-        navigate(`/interviews`);
+        showToast('Interview concluded! Generating evaluation report...', 'success');
+        navigate(`/interviews/${id}/report`);
       }
     } catch (err: unknown) {
       const error = err as any;

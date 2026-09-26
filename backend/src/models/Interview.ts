@@ -7,7 +7,8 @@ import {
   IInterviewStage,
   IInterviewMessage,
   IInterviewSession,
-  IInterviewSummary
+  IInterviewSummary,
+  IInterviewEvaluationReport
 } from '@interviewpilot/shared';
 
 export interface IInterviewDocument extends Document {
@@ -29,6 +30,7 @@ export interface IInterviewDocument extends Document {
   currentStageIndex: number;
   messages: IInterviewMessage[];
   overallScore?: number;
+  evaluationReport?: IInterviewEvaluationReport;
   dimensionScores?: {
     technical?: number;
     communication?: number;
@@ -172,6 +174,10 @@ const InterviewSchema = new Schema<IInterviewDocument>(
       default: null
     },
 
+    evaluationReport: {
+      type: Schema.Types.Mixed,
+      default: null
+    },
     dimensionScores: {
       technical: { type: Number, min: 0, max: 100 },
       communication: { type: Number, min: 0, max: 100 },
@@ -205,8 +211,10 @@ InterviewSchema.methods.toSummaryObject = function (): IInterviewSummary {
     targetRole: this.targetRole,
     status: this.status as InterviewStatus,
     overallScore: this.overallScore ?? undefined,
+    verdict: this.evaluationReport?.verdict,
     durationSeconds: this.durationSeconds,
     topics: (this.focusTopics && this.focusTopics.length > 0) ? this.focusTopics : (this.topics || []),
+    evaluationReport: this.evaluationReport || undefined,
     completedAt: this.completedAt ? this.completedAt.toISOString() : undefined,
     createdAt: this.createdAt.toISOString()
   };
@@ -232,7 +240,7 @@ InterviewSchema.methods.toSessionObject = function (): IInterviewSession {
     currentStageIndex: this.currentStageIndex || 0,
     messages: this.messages || [],
     overallScore: this.overallScore ?? undefined,
-
+    evaluationReport: this.evaluationReport || undefined,
     dimensionScores: this.dimensionScores ? JSON.parse(JSON.stringify(this.dimensionScores)) : undefined,
     feedbackSummary: this.feedbackSummary ? {
       strengths: this.feedbackSummary.strengths || [],

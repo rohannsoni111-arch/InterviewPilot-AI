@@ -17,6 +17,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { InterviewSetupPage } from './pages/InterviewSetupPage';
 import { InterviewsListPage } from './pages/InterviewsListPage';
 import { InterviewRoomPage } from './pages/InterviewRoomPage';
+import { InterviewReportPage } from './pages/InterviewReportPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 const queryClient = new QueryClient({
@@ -73,6 +74,14 @@ export const App: React.FC = () => {
                       element={
                         <ProtectedRoute>
                           <InterviewRoomPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="interviews/:id/report"
+                      element={
+                        <ProtectedRoute>
+                          <InterviewReportPage />
                         </ProtectedRoute>
                       }
                     />

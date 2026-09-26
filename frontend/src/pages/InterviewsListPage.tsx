@@ -299,6 +299,16 @@ export const InterviewsListPage: React.FC = () => {
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
 
+                    {session.status === InterviewStatus.COMPLETED || session.overallScore !== undefined ? (
+                      <Link
+                        to={`/interviews/${session.id}/report`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 border border-indigo-500/30 text-xs font-semibold shadow-xs transition-all"
+                      >
+                        <Award className="w-3.5 h-3.5" />
+                        Report
+                      </Link>
+                    ) : null}
+
                     <Link
                       to={`/interviews/${session.id}/room`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-xs transition-all"
