@@ -22,6 +22,7 @@ import { ResumesPage } from './pages/ResumesPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { QuestionBankPage } from './pages/QuestionBankPage';
 import { PublicVerificationPage } from './pages/PublicVerificationPage';
+import { PeerPairingPage } from './pages/PeerPairingPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 const queryClient = new QueryClient({
@@ -95,6 +96,22 @@ export const App: React.FC = () => {
                       element={
                         <ProtectedRoute>
                           <QuestionBankPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="peer-pairing"
+                      element={
+                        <ProtectedRoute>
+                          <PeerPairingPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="peer-pairing/:roomCode"
+                      element={
+                        <ProtectedRoute>
+                          <PeerPairingPage />
                         </ProtectedRoute>
                       }
                     />

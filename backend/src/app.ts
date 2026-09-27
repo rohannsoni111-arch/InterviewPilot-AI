@@ -14,6 +14,7 @@ import resumeRouter from './routes/resume.routes';
 import speechRouter from './routes/speech.routes';
 import questionBankRouter from './routes/questionBank.routes';
 import verificationRouter from './routes/verification.routes';
+import peerRoomRouter from './routes/peerRoom.routes';
 
 export function createApp() {
   const app = express();
@@ -38,6 +39,7 @@ export function createApp() {
   app.use('/api/v1/resumes', resumeRouter);
   app.use('/api/v1/speech', speechRouter);
   app.use('/api/v1/questions', questionBankRouter);
+  app.use('/api/v1/peer-rooms', peerRoomRouter);
   app.use('/api/v1', verificationRouter);
 
 

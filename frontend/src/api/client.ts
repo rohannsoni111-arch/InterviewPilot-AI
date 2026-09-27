@@ -11,6 +11,10 @@ import {
   IInterviewSession,
   IVerifiedReportBadge,
   IPublicVerifiedReport,
+  IPeerRoom,
+  ICreatePeerRoomRequest,
+  ISubmitPeerEvaluationRequest,
+  PeerRole,
 } from '@interviewpilot/shared';
 
 interface ExtendedAxiosInstance extends AxiosInstance {
@@ -22,6 +26,13 @@ interface ExtendedAxiosInstance extends AxiosInstance {
   launchQuestionInterview?: (id: string) => Promise<ApiResponse<IInterviewSession>>;
   getVerificationBadge?: (interviewId: string) => Promise<ApiResponse<IVerifiedReportBadge>>;
   getPublicVerifiedReport?: (badgeId: string) => Promise<ApiResponse<IPublicVerifiedReport>>;
+  createPeerRoom?: (params: ICreatePeerRoomRequest) => Promise<ApiResponse<IPeerRoom>>;
+  getPeerRoom?: (roomCode: string) => Promise<ApiResponse<IPeerRoom>>;
+  joinPeerRoom?: (roomCode: string, params?: { preferredRole?: PeerRole; userId?: string; userName?: string }) => Promise<ApiResponse<IPeerRoom>>;
+  switchPeerRole?: (roomCode: string, role: PeerRole) => Promise<ApiResponse<IPeerRoom>>;
+  syncPeerCode?: (roomCode: string, params: { code: string; language?: string }) => Promise<ApiResponse<IPeerRoom>>;
+  updatePeerNotes?: (roomCode: string, params: { evaluatorNotes?: string; dimensionRatings?: Record<string, number> }) => Promise<ApiResponse<IPeerRoom>>;
+  submitPeerEvaluation?: (roomCode: string, params: Omit<ISubmitPeerEvaluationRequest, 'roomCode'>) => Promise<ApiResponse<IPeerRoom>>;
 }
 
 export const api: ExtendedAxiosInstance = axios.create({
@@ -69,5 +80,40 @@ api.getVerificationBadge = async (interviewId: string): Promise<ApiResponse<IVer
 
 api.getPublicVerifiedReport = async (badgeId: string): Promise<ApiResponse<IPublicVerifiedReport>> => {
   const res = await api.get(`/verify/${badgeId}`);
+  return res.data;
+};
+
+api.createPeerRoom = async (params: ICreatePeerRoomRequest): Promise<ApiResponse<IPeerRoom>> => {
+  const res = await api.post('/peer-rooms', params);
+  return res.data;
+};
+
+api.getPeerRoom = async (roomCode: string): Promise<ApiResponse<IPeerRoom>> => {
+  const res = await api.get(`/peer-rooms/${roomCode}`);
+  return res.data;
+};
+
+api.joinPeerRoom = async (roomCode: string, params?: { preferredRole?: PeerRole; userId?: string; userName?: string }): Promise<ApiResponse<IPeerRoom>> => {
+  const res = await api.post(`/peer-rooms/${roomCode}/join`, params || {});
+  return res.data;
+};
+
+api.switchPeerRole = async (roomCode: string, role: PeerRole): Promise<ApiResponse<IPeerRoom>> => {
+  const res = await api.post(`/peer-rooms/${roomCode}/role`, { role });
+  return res.data;
+};
+
+api.syncPeerCode = async (roomCode: string, params: { code: string; language?: string }): Promise<ApiResponse<IPeerRoom>> => {
+  const res = await api.post(`/peer-rooms/${roomCode}/sync-code`, params);
+  return res.data;
+};
+
+api.updatePeerNotes = async (roomCode: string, params: { evaluatorNotes?: string; dimensionRatings?: Record<string, number> }): Promise<ApiResponse<IPeerRoom>> => {
+  const res = await api.post(`/peer-rooms/${roomCode}/notes`, params);
+  return res.data;
+};
+
+api.submitPeerEvaluation = async (roomCode: string, params: Omit<ISubmitPeerEvaluationRequest, 'roomCode'>): Promise<ApiResponse<IPeerRoom>> => {
+  const res = await api.post(`/peer-rooms/${roomCode}/evaluate`, params);
   return res.data;
 };

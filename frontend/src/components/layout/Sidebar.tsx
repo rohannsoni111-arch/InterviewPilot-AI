@@ -13,7 +13,8 @@ import {
   User,
   Settings,
   ShieldCheck,
-  Building2
+  Building2,
+  Users
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -34,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
       : []),
     { to: '/', label: 'Overview', icon: Home },
     { to: '/questions', label: 'Question Bank', icon: Building2 },
+    { to: '/peer-pairing', label: 'Peer Pairing', icon: Users },
     { to: '/health', label: 'System Health', icon: Activity },
     { to: '/coding', label: 'Code Studio', icon: Cpu },
     { to: '/resumes', label: 'Resume & JD Match', icon: FileText },

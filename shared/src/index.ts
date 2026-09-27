@@ -710,6 +710,67 @@ export interface IPublicVerifiedReport {
   durationMinutes: number;
 }
 
+// ----------------------------------------------------
+// Extension 4: Multiplayer Mock Interviewer & Peer Pairing Studio
+// ----------------------------------------------------
+
+export type PeerRole = 'interviewer' | 'candidate';
+
+export interface IPeerParticipant {
+  userId: string;
+  name: string;
+  role: PeerRole;
+  isReady: boolean;
+  socketId?: string;
+}
+
+export interface IPeerChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  timestamp: string;
+  isSystem?: boolean;
+}
+
+export interface IPeerRoom {
+  roomCode: string;
+  hostId: string;
+  title: string;
+  track: InterviewType;
+  difficulty: DifficultyLevel;
+  participants: IPeerParticipant[];
+  currentQuestionId?: string;
+  code: string;
+  language: string;
+  evaluatorNotes: string;
+  dimensionRatings: Record<string, number>;
+  status: 'waiting' | 'active' | 'completed';
+  createdAt: string;
+  completedEvaluation?: {
+    overallScore: number;
+    verdict: HiringVerdict;
+    feedback: string;
+    submittedBy: string;
+    submittedAt: string;
+  };
+}
+
+export interface ICreatePeerRoomRequest {
+  title?: string;
+  track?: InterviewType;
+  difficulty?: DifficultyLevel;
+  initialRole?: PeerRole;
+  questionId?: string;
+}
+
+export interface ISubmitPeerEvaluationRequest {
+  roomCode: string;
+  ratings: Record<string, number>;
+  feedback: string;
+  verdict: HiringVerdict;
+}
+
 
 
 
