@@ -36,7 +36,7 @@ class AdvanceStageResponse(BaseModel):
 @router.post("/start", response_model=StartInterviewResponse)
 async def start_interview(payload: StartInterviewRequest):
     try:
-        res = InterviewerService.generate_opening_turn(payload.session)
+        res = await InterviewerService.generate_opening_turn(payload.session)
         return StartInterviewResponse(
             success=True,
             message=res["message"],
@@ -48,7 +48,7 @@ async def start_interview(payload: StartInterviewRequest):
 @router.post("/turn", response_model=TurnInterviewResponse)
 async def turn_interview(payload: TurnInterviewRequest):
     try:
-        res = InterviewerService.generate_turn_response(
+        res = await InterviewerService.generate_turn_response(
             payload.session,
             payload.history,
             payload.candidate_response
@@ -79,7 +79,7 @@ async def advance_stage(payload: AdvanceStageRequest):
 @router.post("/evaluate")
 async def evaluate_interview(payload: EvaluateSessionRequest):
     try:
-        report = EvaluationService.evaluate_interview(payload)
+        report = await EvaluationService.evaluate_interview(payload)
         return {
             "success": True,
             "data": report

@@ -29,7 +29,8 @@ export function createApp() {
   app.use(express.json());
   app.use(requestLogger);
 
-  // Mount API v1 routes
+  // Mount Health routes
+  app.use('/health', healthRouter);
   app.use('/api/v1', healthRouter);
   app.use('/api/v1/auth', authRouter);
   app.use('/api/v1/users', userRouter);

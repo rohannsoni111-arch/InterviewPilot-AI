@@ -939,40 +939,139 @@ export class InterviewService {
 
   private generateFallbackReport(interview: any): IInterviewEvaluationReport {
     const candidateMsgs = interview.messages?.filter((m: any) => m.role === 'candidate') || [];
-    const wordCount = candidateMsgs.reduce((acc: number, m: any) => acc + (m.content || '').split(' ').length, 0);
-    const score = Math.min(95, Math.max(50, 75 + (wordCount > 100 ? 10 : 0)));
-    const verdict = score >= 85 ? HiringVerdict.STRONG_HIRE : (score >= 75 ? HiringVerdict.HIRE : HiringVerdict.LEAN_HIRE);
+    const allCandidateText = candidateMsgs.map((m: any) => m.content || '').join(' ');
+    const wordCount = allCandidateText.split(/\s+/).filter(Boolean).length;
+    
+    // Extract code snippets
+    const codeBlocks: string[] = [];
+    for (const m of candidateMsgs) {
+      if (m.codeSnippet?.code) {
+        codeBlocks.push(m.codeSnippet.code);
+      }
+    }
+    const hasCode = codeBlocks.length > 0;
+
+    // Detect mentioned technical terms
+    const techBank = [
+      'React', 'Redux', 'Zustand', 'Context', 'TypeScript', 'JavaScript', 'Node.js', 'Express',
+      'Python', 'FastAPI', 'Go', 'Java', 'SQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Kafka',
+      'Docker', 'Kubernetes', 'AWS', 'System Design', 'Caching', 'Sharding', 'Replication',
+      'Concurrency', 'Event Loop', 'Time Complexity', 'Space Complexity', 'Big-O', 'Algorithms'
+    ];
+    const lower = (allCandidateText + ' ' + codeBlocks.join(' ')).toLowerCase();
+    const matchedTech = techBank.filter((k) => lower.includes(k.toLowerCase()));
+    const techSummary = matchedTech.length > 0 ? matchedTech.slice(0, 4).join(', ') : 'software engineering principles';
+
+    const hasComplexity = lower.includes('o(') || lower.includes('complexity') || lower.includes('big-o') || lower.includes('latency');
+    const hasArchitecture = lower.includes('scalable') || lower.includes('distributed') || lower.includes('cache') || lower.includes('service');
+
+    let score = 72;
+    if (wordCount > 150) score += 12;
+    else if (wordCount > 60) score += 8;
+    else if (wordCount > 20) score += 3;
+    else score -= 12;
+
+    if (matchedTech.length >= 3) score += 6;
+    if (hasComplexity) score += 3;
+    if (hasArchitecture) score += 3;
+    if (hasCode) score += 4;
+
+    score = Math.min(97, Math.max(45, score));
+
+    const verdict =
+      score >= 88
+        ? HiringVerdict.STRONG_HIRE
+        : score >= 76
+        ? HiringVerdict.HIRE
+        : score >= 65
+        ? HiringVerdict.LEAN_HIRE
+        : score >= 52
+        ? HiringVerdict.LEAN_NO_HIRE
+        : HiringVerdict.NO_HIRE;
+
+    const stages = interview.stages || [];
+    const stageEvaluations = stages.map((s: any, i: number) => {
+      const stageMsgs = candidateMsgs.filter((m: any) => m.stageId === s.id || m.stageIndex === i);
+      const stageWords = stageMsgs.reduce((acc: number, m: any) => acc + (m.content || '').split(/\s+/).length, 0);
+      const stageText = stageMsgs.map((m: any) => m.content || '').join(' ');
+      const preview = stageText.length > 80 ? stageText.substring(0, 80) + '...' : stageText;
+
+      return {
+        stageId: s.id || `stage-${i + 1}`,
+        stageTitle: s.title || `Stage ${i + 1}`,
+        score: Math.min(100, Math.max(45, score + (stageWords > 20 ? 2 : -3))),
+        feedback: stageWords > 0
+          ? `Candidate participated with ${stageWords} words in ${s.title}: "${preview}". Demonstrated relevant knowledge.`
+          : `Standard progression through ${s.title}.`,
+        keyObservations: [
+          stageWords > 0 ? `Discussed: "${preview}"` : `Completed stage requirements for ${s.title}`,
+          `Evaluated against ${interview.targetRole} benchmark standards.`
+        ],
+        strengths: [
+          `Clear articulation of concepts related to ${s.title}.`,
+          'Direct alignment with interviewer probes.'
+        ],
+        areasForImprovement: [
+          'Proactively discuss edge cases and throughput constraints early in the response.'
+        ]
+      };
+    });
 
     return {
       overallScore: score,
       verdict,
-      summary: `Candidate demonstrated solid understanding of ${interview.targetRole} domain principles. Clear communication of core architectural trade-offs.`,
+      summary: `Candidate completed the ${interview.difficulty?.toUpperCase() || 'SENIOR'} ${interview.targetRole} (${interview.type}) assessment with an overall readiness score of ${score}/100 resulting in a '${verdict.replace(/_/g, ' ')}' verdict. Demonstrated proficiency in ${techSummary} with clear communication.`,
       dimensionScores: [
-        { dimension: 'Technical & Algorithmic Correctness', score: score + 2, maxScore: 100, feedback: 'Strong foundational accuracy.', status: 'meets' },
-        { dimension: 'Problem-Solving & Architectural Depth', score: score - 2, maxScore: 100, feedback: 'Clean decomposition of requirements.', status: 'meets' },
-        { dimension: 'Communication Clarity & Structure', score: score + 4, maxScore: 100, feedback: 'Concise, structured verbal explanations.', status: 'exceeds' },
-        { dimension: 'Edge Cases & Scalability Handling', score: score - 4, maxScore: 100, feedback: 'Addressed primary partition modes.', status: 'meets' },
-        { dimension: 'Code & Implementation Quality', score: score, maxScore: 100, feedback: 'Idiomatic and maintainable patterns.', status: 'meets' }
+        {
+          dimension: 'Technical & Algorithmic Correctness',
+          score: Math.min(100, Math.max(45, score + (matchedTech.length >= 2 ? 3 : -3))),
+          maxScore: 100,
+          feedback: `Demonstrated technical understanding of ${techSummary}.`,
+          status: score >= 85 ? 'exceeds' : score >= 68 ? 'meets' : 'below'
+        },
+        {
+          dimension: 'Problem-Solving & Architectural Depth',
+          score: Math.min(100, Math.max(40, score + (hasArchitecture ? 3 : -2))),
+          maxScore: 100,
+          feedback: hasArchitecture ? 'Structured problem breakdown with clear component decomposition.' : 'Good high-level reasoning; deeper exploration of distributed failure modes recommended.',
+          status: score >= 82 ? 'exceeds' : score >= 65 ? 'meets' : 'below'
+        },
+        {
+          dimension: 'Communication Clarity & Structure',
+          score: Math.min(100, Math.max(50, score + (wordCount >= 50 ? 4 : -4))),
+          maxScore: 100,
+          feedback: `Candidate provided ${wordCount} words across responses with concise, structured delivery.`,
+          status: score >= 80 ? 'exceeds' : score >= 65 ? 'meets' : 'below'
+        },
+        {
+          dimension: 'Edge Cases & Scalability Handling',
+          score: Math.min(100, Math.max(38, score + (hasComplexity ? 2 : -5))),
+          maxScore: 100,
+          feedback: hasComplexity ? 'Considered asymptotic bounds and runtime trade-offs.' : 'Explicitly quantify worst-case latency and partition boundaries.',
+          status: score >= 88 ? 'exceeds' : score >= 68 ? 'meets' : 'below'
+        },
+        {
+          dimension: 'Code & Implementation Quality',
+          score: Math.min(100, Math.max(45, score + (hasCode ? 4 : -1))),
+          maxScore: 100,
+          feedback: hasCode ? 'Provided clean and structured code implementation.' : 'Demonstrated conceptual clarity; writing runnable snippets is encouraged.',
+          status: score >= 84 ? 'exceeds' : score >= 67 ? 'meets' : 'below'
+        }
       ],
-      stageEvaluations: (interview.stages || []).map((s: any, i: number) => ({
-        stageId: s.id,
-        stageTitle: s.title,
-        score: score + (i % 2 === 0 ? 2 : -2),
-        feedback: `Addressed core deliverables for ${s.title}.`,
-        keyObservations: [`Successfully handled stage ${i + 1} topics.`],
-        strengths: ['Clear reasoning', 'Responsive to hints'],
-        areasForImprovement: ['Quantitative boundary estimations']
-      })),
+      stageEvaluations,
       strengths: [
-        `Strong grasp of core ${interview.targetRole} concepts.`,
-        'Articulate and structured communication style.'
+        `Strong grasp of core technical concepts including ${techSummary}.`,
+        'Structured, articulate, and responsive communication style.',
+        'Effective problem scoping matching target role standards.'
       ],
       weaknesses: [
-        'Proactive edge case consideration under heavy load.'
+        'Proactively state Big-O computational time and space trade-offs.',
+        'Deepen quantitative estimation of system metrics (QPS, IOPS, and tail latency).'
       ],
       actionPlan: [
-        'Conduct 2-3 focused mock drills on high-concurrency failure recovery.',
-        'Deepen familiarity with quantitative back-of-the-envelope calculations.'
+        `Master advanced architectural patterns and state lifecycles in ${matchedTech[0] || 'your core stack'}.`,
+        'Practice timed mock interviews focusing on verbalizing failure recovery before implementation.',
+        'Incorporate explicit edge case checklists (empty inputs, timeouts, concurrency collisions).'
       ],
       generatedAt: new Date().toISOString()
     };

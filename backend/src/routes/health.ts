@@ -5,7 +5,7 @@ import { env } from '../config/env';
 
 export const healthRouter = Router();
 
-healthRouter.get('/health', async (_req: Request, res: Response) => {
+healthRouter.get(['/', '/health'], async (_req: Request, res: Response) => {
   const dbStatus = isDatabaseConnected() ? 'connected' : (env.NODE_ENV === 'test' ? 'mocked' : 'disconnected');
   const redisStatus = isRedisConnected() ? 'connected' : (env.NODE_ENV === 'test' ? 'mocked' : 'disconnected');
   

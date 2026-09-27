@@ -81,26 +81,45 @@ export const VoiceStudioModal: React.FC<VoiceStudioModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleTestAudioSample = async (voiceId: string) => {
-    try {
-      setIsPlayingSample(voiceId);
-      if (api.synthesizeSpeech) {
-        const res = await api.synthesizeSpeech({
-          text: 'Hello candidate! I will be conducting your technical assessment today.',
-          voiceId,
-          speed: currentSettings.speechRate,
-        });
+  const handleTestAudioSample = (voiceId: string) => {
+    setIsPlayingSample(voiceId);
 
-        if (res?.data?.audioDataUrl) {
-          const audio = new Audio(res.data.audioDataUrl);
-          audio.onended = () => setIsPlayingSample(null);
-          audio.onerror = () => setIsPlayingSample(null);
-          await audio.play();
-          return;
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const testLine = 'Hello! I will be conducting your technical assessment today.';
+      const utterance = new SpeechSynthesisUtterance(testLine);
+      utterance.rate = currentSettings.speechRate || 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        const english = voices.filter((v) => v.lang.startsWith('en'));
+        const pool = english.length > 0 ? english : voices;
+
+        if (voiceId === 'sarah-rigorous') {
+          const female = pool.find((v) => /female|jenny|samantha|zira|victoria|karen|aria/i.test(v.name));
+          if (female) utterance.voice = female;
+          utterance.pitch = 1.05;
+        } else if (voiceId === 'alex-architect') {
+          const male = pool.find((v) => /male|guy|david|alex|daniel|george/i.test(v.name));
+          if (male) utterance.voice = male;
+          utterance.pitch = 0.95;
+        } else if (voiceId === 'elena-supportive') {
+          const uk = pool.find((v) => /gb|uk|sonia|fiona|stephanie|libby/i.test(v.lang) || /sonia|fiona|libby/i.test(v.name));
+          if (uk) utterance.voice = uk;
+          utterance.pitch = 1.02;
+        } else if (voiceId === 'marcus-director') {
+          const director = pool.find((v) => /mark|george|guy|male|richard/i.test(v.name));
+          if (director) utterance.voice = director;
+          utterance.pitch = 0.9;
+        } else {
+          utterance.voice = pool[0];
         }
       }
-      setTimeout(() => setIsPlayingSample(null), 1200);
-    } catch {
+
+      utterance.onend = () => setIsPlayingSample(null);
+      utterance.onerror = () => setIsPlayingSample(null);
+      window.speechSynthesis.speak(utterance);
+    } else {
       setTimeout(() => setIsPlayingSample(null), 1200);
     }
   };

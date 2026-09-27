@@ -88,51 +88,68 @@ export const InterviewRoomPage: React.FC = () => {
     scrollToBottom();
   }, [messages, isSending]);
 
-  const fallbackWebSpeech = useCallback(
+  // Speech synthesis for AI examiner messages
+  const speakText = useCallback(
     (text: string) => {
-      if ('speechSynthesis' in window) {
+      if (!voiceStudioSettings.enabled || !audioSettings.ttsEnabled) return;
+      if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+      try {
         window.speechSynthesis.cancel();
-        const cleanText = text.replace(/[*_#`]/g, '');
+
+        // Clean out markdown symbols, backticks, URLs, and code blocks for smooth speech
+        const cleanText = text
+          .replace(/```[\s\S]*?```/g, 'Code snippet provided on the screen.')
+          .replace(/[*_#`~>]/g, '')
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+          .replace(/https?:\/\/\S+/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        if (!cleanText) return;
+
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.rate = voiceStudioSettings.speechRate;
-        utterance.pitch = audioSettings.speechPitch;
+        utterance.rate = voiceStudioSettings.speechRate || 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        const voiceId = voiceStudioSettings.voiceId || 'sarah-rigorous';
+
+        if (voices && voices.length > 0) {
+          const englishVoices = voices.filter((v) => v.lang.startsWith('en'));
+          const pool = englishVoices.length > 0 ? englishVoices : voices;
+
+          if (voiceId === 'sarah-rigorous') {
+            const female = pool.find((v) => /female|jenny|samantha|zira|victoria|karen|aria/i.test(v.name));
+            if (female) utterance.voice = female;
+            utterance.pitch = 1.05 * (audioSettings.speechPitch || 1.0);
+          } else if (voiceId === 'alex-architect') {
+            const male = pool.find((v) => /male|guy|david|alex|daniel|george/i.test(v.name));
+            if (male) utterance.voice = male;
+            utterance.pitch = 0.95 * (audioSettings.speechPitch || 1.0);
+          } else if (voiceId === 'elena-supportive') {
+            const uk = pool.find((v) => /gb|uk|sonia|fiona|stephanie|libby/i.test(v.lang) || /sonia|fiona|libby/i.test(v.name));
+            if (uk) utterance.voice = uk;
+            utterance.pitch = 1.02 * (audioSettings.speechPitch || 1.0);
+          } else if (voiceId === 'marcus-director') {
+            const director = pool.find((v) => /mark|george|guy|male|richard/i.test(v.name));
+            if (director) utterance.voice = director;
+            utterance.pitch = 0.9 * (audioSettings.speechPitch || 1.0);
+          } else {
+            utterance.voice = pool[0];
+            utterance.pitch = audioSettings.speechPitch || 1.0;
+          }
+        }
+
         utterance.onstart = () => setIsSpeaking(true);
         utterance.onend = () => setIsSpeaking(false);
         utterance.onerror = () => setIsSpeaking(false);
+
         window.speechSynthesis.speak(utterance);
-      } else {
+      } catch {
         setIsSpeaking(false);
       }
     },
-    [voiceStudioSettings.speechRate, audioSettings.speechPitch]
-  );
-
-  // Speech synthesis for AI examiner messages
-  const speakText = useCallback(
-    async (text: string) => {
-      if (!voiceStudioSettings.enabled || !audioSettings.ttsEnabled) return;
-      try {
-        setIsSpeaking(true);
-        if (api.synthesizeSpeech) {
-          const res = await api.synthesizeSpeech({
-            text: text.replace(/[*_#`]/g, ''),
-            voiceId: voiceStudioSettings.voiceId,
-            speed: voiceStudioSettings.speechRate
-          });
-          if (res?.data?.audioDataUrl) {
-            const audio = new Audio(res.data.audioDataUrl);
-            audio.onended = () => setIsSpeaking(false);
-            audio.onerror = () => fallbackWebSpeech(text);
-            await audio.play();
-            return;
-          }
-        }
-        fallbackWebSpeech(text);
-      } catch {
-        fallbackWebSpeech(text);
-      }
-    },
-    [voiceStudioSettings, audioSettings.ttsEnabled, fallbackWebSpeech]
+    [voiceStudioSettings, audioSettings]
   );
 
   // Speech-to-text recognition setup
